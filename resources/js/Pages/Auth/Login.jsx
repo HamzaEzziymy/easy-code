@@ -157,10 +157,13 @@ import TextInput from '@/Components/TextInput';
 import GuestLayout from '@/Layouts/GuestLayout';
 import { Head, Link, useForm } from '@inertiajs/react';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { FaEye } from 'react-icons/fa';
 import { IoEyeOff } from 'react-icons/io5';
 
 export default function Login({ status, canResetPassword }) {
+    const { t } = useTranslation();
+
     const { data, setData, post, processing, errors, reset } = useForm({
         email: '',
         password: '',
@@ -179,7 +182,7 @@ export default function Login({ status, canResetPassword }) {
 
     return (
         <GuestLayout>
-            <Head title="Log in" />
+            <Head title={t('auth.loginTitle')} />
 
             {status && (
                 <div className="mb-4 text-sm font-medium text-green-600 dark:text-green-400">
@@ -196,7 +199,7 @@ export default function Login({ status, canResetPassword }) {
                             className="h-16 w-16 fill-current text-[#007BFF] dark:text-[#00AEEF] mx-auto" 
                         />
                     </Link>
-                    <h2 className="text-2xl m-8 font-bold text-gray-800 dark:text-white">Welcome Back</h2>
+                    <h2 className="text-2xl m-8 font-bold text-gray-800 dark:text-white">{t('common.welcomeBack')}</h2>
                 </div>
 
                 <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 dark:border-gray-700/50 p-8">
@@ -204,7 +207,7 @@ export default function Login({ status, canResetPassword }) {
                         <div className="mb-6">
                             <InputLabel 
                                 htmlFor="email" 
-                                value="Email" 
+                                value={t('common.email')} 
                                 className="text-[#007BFF] dark:text-[#FFC107] font-medium"
                             />
                             <TextInput
@@ -223,7 +226,7 @@ export default function Login({ status, canResetPassword }) {
                         <div className="mb-6">
                             <InputLabel 
                                 htmlFor="password" 
-                                value="Password" 
+                                value={t('common.password')} 
                                 className="text-[#007BFF] dark:text-[#FFC107] font-medium"
                             />
                             <div className="relative">
@@ -232,14 +235,14 @@ export default function Login({ status, canResetPassword }) {
                                     type={showPassword ? "text" : "password"}
                                     name="password"
                                     value={data.password}
-                                    className="mt-2 block w-full rounded-lg border-gray-300 dark:border-gray-600 shadow-sm focus:border-[#007BFF] dark:focus:border-[#00AEEF] focus:ring-[#007BFF] dark:focus:ring-[#00AEEF] bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-all duration-200 pr-10"
+                                    className="mt-2 block w-full rounded-lg border-gray-300 dark:border-gray-600 shadow-sm focus:border-[#007BFF] dark:focus:border-[#00AEEF] focus:ring-[#007BFF] dark:focus:ring-[#00AEEF] bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-all duration-200 pe-10"
                                     autoComplete="current-password"
                                     onChange={(e) => setData('password', e.target.value)}
                                 />
                                 <button
                                     type="button"
                                     onClick={() => setShowPassword(!showPassword)}
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 hover:text-[#007BFF] dark:hover:text-[#00AEEF] focus:outline-none transition-colors duration-200"
+                                    className="absolute end-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 hover:text-[#007BFF] dark:hover:text-[#00AEEF] focus:outline-none transition-colors duration-200"
                                 >
                                     {showPassword ? (
                                         <IoEyeOff className="w-5 h-5" />
@@ -260,7 +263,7 @@ export default function Login({ status, canResetPassword }) {
                                     className="rounded border-gray-300 dark:border-gray-600 text-[#007BFF] dark:text-[#00AEEF] focus:ring-[#007BFF] dark:focus:ring-[#00AEEF] bg-white dark:bg-gray-700"
                                 />
                                 <span className="ms-2 text-sm text-gray-600 dark:text-gray-400">
-                                    Remember me
+                                    {t('auth.remember')}
                                 </span>
                             </label>
 
@@ -269,7 +272,7 @@ export default function Login({ status, canResetPassword }) {
                                     href={route('password.request')}
                                     className="text-sm text-[#007BFF] hover:text-[#0056b3] dark:text-[#00AEEF] dark:hover:text-[#008ECC] font-medium transition-colors duration-200"
                                 >
-                                    Forgot password?
+                                    {t('auth.forgotPassword')}
                                 </Link>
                             )}
                         </div>
@@ -280,13 +283,13 @@ export default function Login({ status, canResetPassword }) {
                         >
                             {processing ? (
                                 <div className="flex items-center">
-                                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-                                    Signing in...
+                                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin me-2"></div>
+                                    {t('auth.signingIn')}
                                 </div>
                             ) : (
                                 <div className="flex items-center">
-                                    <span>Sign in</span>
-                                    <svg className="w-4 h-4 ms-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <span>{t('common.signIn')}</span>
+                                    <svg className="w-4 h-4 ms-2 rtl:-scale-x-100" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                                     </svg>
                                 </div>

@@ -14,7 +14,8 @@ export default {
     theme: {
         extend: {
             fontFamily: {
-                sans: ['Figtree', ...defaultTheme.fontFamily.sans],
+                // Cairo carries the Arabic glyphs Figtree does not ship.
+                sans: ['Figtree', 'Cairo', ...defaultTheme.fontFamily.sans],
             },
         },
     },

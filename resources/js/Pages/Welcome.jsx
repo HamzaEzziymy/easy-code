@@ -1,6 +1,10 @@
+import LanguageSwitcher from '@/Components/LanguageSwitcher';
 import { Head, Link } from '@inertiajs/react';
+import { useTranslation } from 'react-i18next';
 
 export default function Welcome({ auth, laravelVersion, phpVersion }) {
+    const { t } = useTranslation();
+
     const handleImageError = () => {
         document
             .getElementById('screenshot-container')
@@ -14,7 +18,7 @@ export default function Welcome({ auth, laravelVersion, phpVersion }) {
 
     return (
         <>
-            <Head title="Welcome" />
+            <Head title={t('common.welcome')} />
             <div className="bg-gray-50 text-black/50 dark:bg-black dark:text-white/50">
                 <img
                     id="background"
@@ -43,7 +47,7 @@ export default function Welcome({ auth, laravelVersion, phpVersion }) {
                                         href={route('dashboard')}
                                         className="rounded-md px-3 py-2 text-black ring-1 ring-transparent transition hover:text-black/70 focus:outline-none focus-visible:ring-[#FF2D20] dark:text-white dark:hover:text-white/80 dark:focus-visible:ring-white"
                                     >
-                                        Dashboard
+                                        {t('common.dashboard')}
                                     </Link>
                                 ) : (
                                     <>
@@ -51,16 +55,18 @@ export default function Welcome({ auth, laravelVersion, phpVersion }) {
                                             href={route('login')}
                                             className="rounded-md px-3 py-2 text-black ring-1 ring-transparent transition hover:text-black/70 focus:outline-none focus-visible:ring-[#FF2D20] dark:text-white dark:hover:text-white/80 dark:focus-visible:ring-white"
                                         >
-                                            Log in
+                                            {t('common.logIn')}
                                         </Link>
                                         <Link
                                             href={route('register')}
                                             className="rounded-md px-3 py-2 text-black ring-1 ring-transparent transition hover:text-black/70 focus:outline-none focus-visible:ring-[#FF2D20] dark:text-white dark:hover:text-white/80 dark:focus-visible:ring-white"
                                         >
-                                            Register
+                                            {t('common.register')}
                                         </Link>
                                     </>
                                 )}
+
+                                <LanguageSwitcher className="text-black dark:text-white" />
                             </nav>
                         </header>
 

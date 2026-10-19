@@ -1,0 +1,82 @@
+{
+    "language": {
+        "en": "English",
+        "fr": "Français",
+        "ar": "العربية",
+        "switcher": "Language"
+    },
+    "common": {
+        "name": "Name",
+        "email": "Email",
+        "password": "Password",
+        "confirmPassword": "Confirm Password",
+        "save": "Save",
+        "saved": "Saved.",
+        "cancel": "Cancel",
+        "confirm": "Confirm",
+        "dashboard": "Dashboard",
+        "profile": "Profile",
+        "logIn": "Log in",
+        "logOut": "Log Out",
+        "register": "Register",
+        "signIn": "Sign in",
+        "welcome": "Welcome",
+        "welcomeBack": "Welcome Back"
+    },
+    "nav": {
+        "structure": "Structure",
+        "projects": "Projects",
+        "tasks": "Tasks",
+        "reports": "Reports",
+        "profile": "Profile"
+    },
+    "topbar": {
+        "lightMode": "Switch to Light Mode",
+        "darkMode": "Switch to Dark Mode",
+        "openMenu": "Open menu"
+    },
+    "dashboard": {
+        "title": "Dashboard",
+        "loggedIn": "You're logged in!"
+    },
+    "guest": {
+        "heading": "Welcome Back",
+        "subheading": "Continue your learning journey with us. Knowledge is the key to success."
+    },
+    "auth": {
+        "loginTitle": "Log in",
+        "signingIn": "Signing in...",
+        "remember": "Remember me",
+        "forgotPassword": "Forgot password?",
+        "registerTitle": "Register",
+        "alreadyRegistered": "Already registered?",
+        "forgotTitle": "Forgot Password",
+        "forgotHelp": "Forgot your password? No problem. Just let us know your email address and we will email you a password reset link that will allow you to choose a new one.",
+        "emailResetLink": "Email Password Reset Link",
+        "resetTitle": "Reset Password",
+        "resetButton": "Reset Password",
+        "resetLinkSent": "A password reset link has been sent to your email address.",
+        "confirmTitle": "Confirm Password",
+        "confirmHelp": "This is a secure area of the application. Please confirm your password before continuing.",
+        "verifyTitle": "Email Verification",
+        "verifyHelp": "Thanks for signing up! Before getting started, could you verify your email address by clicking on the link we just emailed to you? If you didn't receive the email, we will gladly send you another.",
+        "verifySent": "A new verification link has been sent to the email address you provided during registration.",
+        "resendVerification": "Resend Verification Email"
+    },
+    "profile": {
+        "title": "Profile",
+        "information": "Profile Information",
+        "informationHelp": "Update your account's profile information and email address.",
+        "unverifiedEmail": "Your email address is unverified.",
+        "resendVerificationLink": "Click here to re-send the verification email.",
+        "verificationSent": "A new verification link has been sent to your email address.",
+        "updatePassword": "Update Password",
+        "passwordHelp": "Ensure your account is using a long, random password to stay secure.",
+        "currentPassword": "Current Password",
+        "newPassword": "New Password",
+        "deleteAccount": "Delete Account",
+        "deleteHelp": "Once your account is deleted, all of its resources and data will be permanently deleted. Before deleting your account, please download any data or information that you wish to retain.",
+        "deleteConfirmTitle": "Are you sure you want to delete your account?",
+        "deleteConfirmHelp": "Once your account is deleted, all of its resources and data will be permanently deleted. Please enter your password to confirm you would like to permanently delete your account."
+    }
+}

@@ -1,9 +1,14 @@
 import { usePage } from '@inertiajs/react';
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import Dropdown from '@/Components/Dropdown';
+import LanguageSwitcher from '@/Components/LanguageSwitcher';
 import Sidebar from './Sidebar';
 
+const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
 export default function AuthenticatedLayout({ header, children }) {
+    const { t } = useTranslation();
     const user = usePage().props.auth.user;
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -37,7 +42,7 @@ export default function AuthenticatedLayout({ header, children }) {
         <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
             {/* Mobile menu overlay */}
             {mobileMenuOpen && (
-                <div 
+                <div
                     className="fixed inset-0 z-40 bg-gray-600 bg-opacity-75 lg:hidden"
                     onClick={() => setMobileMenuOpen(false)}
                 />
@@ -46,13 +51,14 @@ export default function AuthenticatedLayout({ header, children }) {
             <Sidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen}  />
 
             {/* Main content */}
-            <div className={`transition-all duration-300 ${!sidebarOpen ? 'lg:pl-20':'lg:pl-64'}`}>
+            <div className={`transition-all duration-300 ${!sidebarOpen ? 'lg:ps-20':'lg:ps-64'}`}>
                 {/* Top navigation */}
                 <div className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-x-4 border-b border-gray-200 bg-white px-4 shadow-sm dark:border-gray-700 dark:bg-gray-800 sm:gap-x-6 sm:px-6 lg:px-8">
                     <button
                         type="button"
                         className="-m-2.5 p-2.5 text-gray-700 dark:text-gray-300 lg:hidden"
                         onClick={() => setMobileMenuOpen(true)}
+                        title={t('topbar.openMenu')}
                     >
                         <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
@@ -66,10 +72,12 @@ export default function AuthenticatedLayout({ header, children }) {
                             {header}
                         </div>
                         <div className="flex items-center gap-x-2 lg:gap-x-4">
+                            <LanguageSwitcher />
+
                             <button
                                 onClick={() => toggleDarkMode(!darkMode)}
                                 className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200"
-                                title={darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+                                title={darkMode ? t('topbar.lightMode') : t('topbar.darkMode')}
                             >
                                 {darkMode ? (
                                     // Sun icon for light mode
@@ -92,10 +100,10 @@ export default function AuthenticatedLayout({ header, children }) {
                                             {user.name.charAt(0).toUpperCase()}
                                         </span>
                                         <span className="hidden lg:flex lg:items-center">
-                                            <span className="ml-2 text-sm font-semibold text-gray-900 dark:text-gray-100">
+                                            <span className="ms-2 text-sm font-semibold text-gray-900 dark:text-gray-100">
                                                 {user.name}
                                             </span>
-                                            <svg className="ml-2 h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+                                            <svg className="ms-2 h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
                                                 <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
                                             </svg>
                                         </span>
@@ -103,10 +111,10 @@ export default function AuthenticatedLayout({ header, children }) {
                                 </Dropdown.Trigger>
                                 <Dropdown.Content>
                                     <Dropdown.Link href={route('profile.edit')}>
-                                        Profile
+                                        {t('common.profile')}
                                     </Dropdown.Link>
                                     <Dropdown.Link href={route('logout')} method="post" as="button">
-                                        Log Out
+                                        {t('common.logOut')}
                                     </Dropdown.Link>
                                 </Dropdown.Content>
                             </Dropdown>

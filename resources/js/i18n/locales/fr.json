@@ -1,0 +1,82 @@
+{
+    "language": {
+        "en": "English",
+        "fr": "Français",
+        "ar": "العربية",
+        "switcher": "Langue"
+    },
+    "common": {
+        "name": "Nom",
+        "email": "Adresse e-mail",
+        "password": "Mot de passe",
+        "confirmPassword": "Confirmer le mot de passe",
+        "save": "Enregistrer",
+        "saved": "Enregistré.",
+        "cancel": "Annuler",
+        "confirm": "Confirmer",
+        "dashboard": "Tableau de bord",
+        "profile": "Profil",
+        "logIn": "Connexion",
+        "logOut": "Se déconnecter",
+        "register": "Inscription",
+        "signIn": "Se connecter",
+        "welcome": "Bienvenue",
+        "welcomeBack": "Bon retour"
+    },
+    "nav": {
+        "structure": "Structure",
+        "projects": "Projets",
+        "tasks": "Tâches",
+        "reports": "Rapports",
+        "profile": "Profil"
+    },
+    "topbar": {
+        "lightMode": "Passer en mode clair",
+        "darkMode": "Passer en mode sombre",
+        "openMenu": "Ouvrir le menu"
+    },
+    "dashboard": {
+        "title": "Tableau de bord",
+        "loggedIn": "Vous êtes connecté !"
+    },
+    "guest": {
+        "heading": "Bon retour",
+        "subheading": "Poursuivez votre parcours d'apprentissage avec nous. Le savoir est la clé de la réussite."
+    },
+    "auth": {
+        "loginTitle": "Connexion",
+        "signingIn": "Connexion en cours...",
+        "remember": "Se souvenir de moi",
+        "forgotPassword": "Mot de passe oublié ?",
+        "registerTitle": "Inscription",
+        "alreadyRegistered": "Déjà inscrit ?",
+        "forgotTitle": "Mot de passe oublié",
+        "forgotHelp": "Mot de passe oublié ? Aucun problème. Indiquez-nous simplement votre adresse e-mail et nous vous enverrons un lien de réinitialisation qui vous permettra d'en choisir un nouveau.",
+        "emailResetLink": "Envoyer le lien de réinitialisation",
+        "resetTitle": "Réinitialiser le mot de passe",
+        "resetButton": "Réinitialiser le mot de passe",
+        "resetLinkSent": "Un lien de réinitialisation a été envoyé à votre adresse e-mail.",
+        "confirmTitle": "Confirmer le mot de passe",
+        "confirmHelp": "Ceci est une zone sécurisée de l'application. Veuillez confirmer votre mot de passe avant de continuer.",
+        "verifyTitle": "Vérification de l'adresse e-mail",
+        "verifyHelp": "Merci pour votre inscription ! Avant de commencer, veuillez vérifier votre adresse e-mail en cliquant sur le lien que nous venons de vous envoyer. Si vous ne l'avez pas reçu, nous vous le renverrons avec plaisir.",
+        "verifySent": "Un nouveau lien de vérification a été envoyé à l'adresse e-mail fournie lors de l'inscription.",
+        "resendVerification": "Renvoyer l'e-mail de vérification"
+    },
+    "profile": {
+        "title": "Profil",
+        "information": "Informations du profil",
+        "informationHelp": "Mettez à jour les informations de votre profil et votre adresse e-mail.",
+        "unverifiedEmail": "Votre adresse e-mail n'est pas vérifiée.",
+        "resendVerificationLink": "Cliquez ici pour renvoyer l'e-mail de vérification.",
+        "verificationSent": "Un nouveau lien de vérification a été envoyé à votre adresse e-mail.",
+        "updatePassword": "Mettre à jour le mot de passe",
+        "passwordHelp": "Assurez-vous que votre compte utilise un mot de passe long et aléatoire pour rester sécurisé.",
+        "currentPassword": "Mot de passe actuel",
+        "newPassword": "Nouveau mot de passe",
+        "deleteAccount": "Supprimer le compte",
+        "deleteHelp": "Une fois votre compte supprimé, toutes ses ressources et données seront définitivement supprimées. Avant de supprimer votre compte, veuillez télécharger les données que vous souhaitez conserver.",
+        "deleteConfirmTitle": "Voulez-vous vraiment supprimer votre compte ?",
+        "deleteConfirmHelp": "Une fois votre compte supprimé, toutes ses ressources et données seront définitivement supprimées. Veuillez saisir votre mot de passe pour confirmer la suppression définitive de votre compte."
+    }
+}
