@@ -61,7 +61,9 @@
         "verifyTitle": "Email Verification",
         "verifyHelp": "Thanks for signing up! Before getting started, could you verify your email address by clicking on the link we just emailed to you? If you didn't receive the email, we will gladly send you another.",
         "verifySent": "A new verification link has been sent to the email address you provided during registration.",
-        "resendVerification": "Resend Verification Email"
+        "resendVerification": "Resend Verification Email",
+        "studentLinkHint": "Are you a student?",
+        "studentLink": "Sign in with your code"
     },
     "profile": {
         "title": "Profile",
@@ -78,5 +80,33 @@
         "deleteHelp": "Once your account is deleted, all of its resources and data will be permanently deleted. Before deleting your account, please download any data or information that you wish to retain.",
         "deleteConfirmTitle": "Are you sure you want to delete your account?",
         "deleteConfirmHelp": "Once your account is deleted, all of its resources and data will be permanently deleted. Please enter your password to confirm you would like to permanently delete your account."
+    },
+    "studentLogin": {
+        "title": "Student sign in",
+        "heading": "Student Area",
+        "code": "Login code",
+        "codeHelp": "Enter the code given to you by your driving school.",
+        "submit": "Sign in",
+        "signingIn": "Signing in..."
+    },
+    "student": {
+        "title": "My space",
+        "file": "Student file",
+        "studentNumber": "Student number",
+        "category": "License category",
+        "status": "Status",
+        "phone": "Phone",
+        "enrolledOn": "Enrolled on",
+        "notEnrolled": "Your account is not linked to a student file yet.",
+        "notEnrolledHelp": "Ask your driving school to complete your registration. Your appointments and exam results will appear here.",
+        "emptyTitle": "Nothing here yet",
+        "emptyHelp": "Your appointments and exam results will appear here as soon as your driving school schedules them."
+    },
+    "enums": {
+        "studentStatus": {
+            "active": "Active",
+            "completed": "Completed",
+            "suspended": "Suspended"
+        }
     }
 }

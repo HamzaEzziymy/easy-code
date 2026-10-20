@@ -12,12 +12,17 @@ function Sidebar({sidebarOpen, setSidebarOpen, mobileMenuOpen, setMobileMenuOpen
 
     // Navigation items
     const navigation = [
-        // { name: t('common.dashboard'),icon:<FaHome size={20}/> , href: route('dashboard'), current: route().current('dashboard') },
+        {
+            key: 'dashboard',
+            label: t('common.dashboard'),
+            icon: <FaHome size={20} />,
+            href: route('dashboard'),
+            current: route().current('dashboard'),
+        },
         { key: 'structure', label: t('nav.structure'),icon:<MdAccountTree size={20}/>, href: '#', current: false },
         { key: 'projects', label: t('nav.projects'),icon:<FaProjectDiagram size={20}/>, href: '#', current: false },
         { key: 'tasks', label: t('nav.tasks'),icon:<FaTasks size={20}/>, href: '#', current: false },
         { key: 'reports', label: t('nav.reports'),icon:<FaPaperclip size={20}/>, href: '#', current: false },
-        // { name: 'Settings',icon:<CiSettings size={20}/>, href: '#', current: false },
         { key: 'profile', label: t('nav.profile'),icon:<FaUser size={20}/>, href: route('profile.edit'), current: route().current('profile.edit') },
     ];
 
@@ -28,7 +33,7 @@ function Sidebar({sidebarOpen, setSidebarOpen, mobileMenuOpen, setMobileMenuOpen
             mobileMenuOpen ? 'translate-x-0' : 'ltr:-translate-x-full rtl:translate-x-full'
         }`}>
             <div className="flex h-16 items-center justify-between border-b border-gray-200 px-4 dark:border-gray-700">
-                <ApplicationLogo logo_img="./logo_name_br.png" className="w-auto fill-current text-gray-800 dark:text-gray-200" />
+                <ApplicationLogo logo_img="/logo_name_br.png" className="h-9 w-auto" />
                 <button
                     onClick={() => setMobileMenuOpen(false)}
                     className="rounded-md p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-500 dark:hover:bg-gray-700"
@@ -63,7 +68,7 @@ function Sidebar({sidebarOpen, setSidebarOpen, mobileMenuOpen, setMobileMenuOpen
             <div className="flex grow flex-col gap-y-5 overflow-y-auto border-e border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
                 <div className="flex h-16 shrink-0 items-center justify-between border-b border-gray-200 px-4 dark:border-gray-700">
                     {sidebarOpen && (
-                        <ApplicationLogo logo_img="./logo_name_br.png" className="w-auto fill-current text-gray-800 dark:text-gray-200" />
+                        <ApplicationLogo logo_img="/logo_name_br.png" className="h-9 w-auto" />
                     )}
                     <button
                         onClick={() => setSidebarOpen(!sidebarOpen)}

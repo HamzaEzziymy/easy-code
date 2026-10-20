@@ -31,8 +31,8 @@ export default function GuestLayout({ children }) {
 
                 <div className="relative z-10 flex flex-col justify-center items-center w-full px-12 text-white">
                     <ApplicationLogo
-                        logo_img="./logo_br.png"
-                        className="h-16 w-16 fill-current text-[#007BFF] dark:text-[#0048ff] mx-auto"
+                        logo_img="/logo_br.png"
+                        className="mx-auto h-52 w-auto max-w-full"
                     />
                     <h1 className="text-5xl text-gray-800 dark:text-blue-50 font-bold mb-4 text-center">
                         {t('guest.heading')}

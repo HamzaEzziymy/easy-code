@@ -4,6 +4,8 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
@@ -21,6 +23,11 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'role',
+        'login_code_hash',
+        'is_active',
+        'failed_login_attempts',
+        'last_login_at',
     ];
 
     /**
@@ -31,6 +38,7 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
+        'login_code_hash',
     ];
 
     /**
@@ -43,6 +51,65 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'last_login_at' => 'datetime',
+            'is_active' => 'boolean',
+            'failed_login_attempts' => 'integer',
         ];
+    }
+
+    public function isAdmin(): bool
+    {
+        return $this->role === 'admin';
+    }
+
+    public function isStudent(): bool
+    {
+        return $this->role === 'student';
+    }
+
+    /**
+     * Deterministic (and so directly lookupable via the unique login_code_hash index)
+     * because the app key acts as the salt; codes are trimmed and case-folded here,
+     * so every code must be issued through this helper to stay verifiable.
+     */
+    public static function hashLoginCode(string $code): string
+    {
+        return hash_hmac('sha256', mb_strtoupper(trim($code)), (string) config('app.key'));
+    }
+
+    public function matchesLoginCode(string $code): bool
+    {
+        return $this->login_code_hash !== null
+            && hash_equals($this->login_code_hash, static::hashLoginCode($code));
+    }
+
+    public function studentProfile(): HasOne
+    {
+        return $this->hasOne(Student::class);
+    }
+
+    public function createdQuestions(): HasMany
+    {
+        return $this->hasMany(Question::class, 'created_by');
+    }
+
+    public function createdExams(): HasMany
+    {
+        return $this->hasMany(Exam::class, 'created_by');
+    }
+
+    public function createdAppointments(): HasMany
+    {
+        return $this->hasMany(StudentAppointment::class, 'created_by');
+    }
+
+    public function recordedSuccesses(): HasMany
+    {
+        return $this->hasMany(StudentSuccessRecord::class, 'recorded_by');
+    }
+
+    public function auditLogs(): HasMany
+    {
+        return $this->hasMany(AdminAuditLog::class, 'admin_user_id');
     }
 }

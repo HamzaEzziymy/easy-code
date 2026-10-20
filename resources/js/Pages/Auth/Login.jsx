@@ -41,7 +41,7 @@
 //                 <div className="lg:hidden text-center">
 //                     <Link href="/">
 //                         <ApplicationLogo
-//                             logo_img="./logo_name_br.png" 
+//                             logo_img="/logo_name_br.png" 
 //                             className="h-16 w-16 fill-current text-[#007BFF] dark:text-[#00AEEF] mx-auto" 
 //                         />
 //                     </Link>
@@ -195,8 +195,8 @@ export default function Login({ status, canResetPassword }) {
                 <div className="lg:hidden text-center">
                     <Link href="/">
                         <ApplicationLogo
-                            logo_img="./logo_name_br.png" 
-                            className="h-16 w-16 fill-current text-[#007BFF] dark:text-[#00AEEF] mx-auto" 
+                            logo_img="/logo_name_br.png" 
+                            className="mx-auto mb-5 h-16 w-auto"
                         />
                     </Link>
                     <h2 className="text-2xl m-8 font-bold text-gray-800 dark:text-white">{t('common.welcomeBack')}</h2>
@@ -297,14 +297,25 @@ export default function Login({ status, canResetPassword }) {
                         </PrimaryButton>
                     </form>
 
+                    {/* Student area link */}
+                    <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700 text-center">
+                        <span className="text-sm text-gray-600 dark:text-gray-400">
+                            {t('auth.studentLinkHint')}{' '}
+                        </span>
+                        <Link
+                            href={route('student.login')}
+                            className="text-sm font-medium text-[#007BFF] hover:text-[#0056b3] dark:text-[#00AEEF] dark:hover:text-[#008ECC] transition-colors duration-200"
+                        >
+                            {t('auth.studentLink')}
+                        </Link>
+                    </div>
+
                     {/* Decorative elements with accent colors */}
-                    <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
-                        <div className="flex items-center justify-center space-x-4">
+                    <div className="mt-6 flex items-center justify-center space-x-4">
                             <div className="w-2 h-2 bg-[#FFC107] dark:bg-[#FFC107] rounded-full animate-pulse" style={{ animationDelay: '0s' }}></div>
                             <div className="w-2 h-2 bg-[#007BFF] dark:bg-[#007BFF] rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
                             <div className="w-2 h-2 bg-[#00AEEF] dark:bg-[#00AEEF] rounded-full animate-pulse" style={{ animationDelay: '0.4s' }}></div>
                             <div className="w-2 h-2 bg-[#FF9800] dark:bg-[#FF9800] rounded-full animate-pulse" style={{ animationDelay: '0.6s' }}></div>
-                        </div>
                     </div>
                 </div>
             </div>

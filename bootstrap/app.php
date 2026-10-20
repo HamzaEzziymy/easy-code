@@ -16,6 +16,14 @@ return Application::configure(basePath: dirname(__DIR__))
             \Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets::class,
         ]);
 
+        $middleware->alias([
+            'role' => \App\Http\Middleware\EnsureUserHasRole::class,
+        ]);
+
+        $middleware->redirectUsersTo(fn ($request) => $request->user()?->isStudent()
+            ? route('student.dashboard')
+            : route('dashboard'));
+
         //
     })
     ->withExceptions(function (Exceptions $exceptions): void {

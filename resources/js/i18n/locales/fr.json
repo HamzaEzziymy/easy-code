@@ -61,7 +61,9 @@
         "verifyTitle": "Vérification de l'adresse e-mail",
         "verifyHelp": "Merci pour votre inscription ! Avant de commencer, veuillez vérifier votre adresse e-mail en cliquant sur le lien que nous venons de vous envoyer. Si vous ne l'avez pas reçu, nous vous le renverrons avec plaisir.",
         "verifySent": "Un nouveau lien de vérification a été envoyé à l'adresse e-mail fournie lors de l'inscription.",
-        "resendVerification": "Renvoyer l'e-mail de vérification"
+        "resendVerification": "Renvoyer l'e-mail de vérification",
+        "studentLinkHint": "Vous êtes élève ?",
+        "studentLink": "Connexion élève"
     },
     "profile": {
         "title": "Profil",
@@ -78,5 +80,33 @@
         "deleteHelp": "Une fois votre compte supprimé, toutes ses ressources et données seront définitivement supprimées. Avant de supprimer votre compte, veuillez télécharger les données que vous souhaitez conserver.",
         "deleteConfirmTitle": "Voulez-vous vraiment supprimer votre compte ?",
         "deleteConfirmHelp": "Une fois votre compte supprimé, toutes ses ressources et données seront définitivement supprimées. Veuillez saisir votre mot de passe pour confirmer la suppression définitive de votre compte."
+    },
+    "studentLogin": {
+        "title": "Connexion élève",
+        "heading": "Espace élève",
+        "code": "Code de connexion",
+        "codeHelp": "Saisissez le code remis par votre auto-école.",
+        "submit": "Se connecter",
+        "signingIn": "Connexion en cours..."
+    },
+    "student": {
+        "title": "Mon espace",
+        "file": "Dossier élève",
+        "studentNumber": "Numéro d'élève",
+        "category": "Catégorie de permis",
+        "status": "Statut",
+        "phone": "Téléphone",
+        "enrolledOn": "Inscrit le",
+        "notEnrolled": "Votre compte n'est pas encore lié à un dossier élève.",
+        "notEnrolledHelp": "Demandez à votre auto-école de finaliser votre inscription. Vos convocations et résultats apparaîtront ici.",
+        "emptyTitle": "Rien pour le moment",
+        "emptyHelp": "Vos convocations et vos résultats d’examen apparaîtront ici dès que votre auto-école les aura programmés."
+    },
+    "enums": {
+        "studentStatus": {
+            "active": "Actif",
+            "completed": "Terminé",
+            "suspended": "Suspendu"
+        }
     }
 }
