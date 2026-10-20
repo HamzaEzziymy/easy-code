@@ -16,8 +16,8 @@ function Detail({ icon, label, value }) {
     }
 
     return (
-        <li className="flex items-center gap-x-3 rounded-xl border border-gray-100 bg-gray-50/80 px-3 py-2.5 dark:border-gray-700/60 dark:bg-gray-900/40">
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white text-[#007BFF] shadow-sm dark:bg-gray-800 dark:text-[#00AEEF]">
+        <li className="flex items-center gap-x-3">
+            <span className="flex h-5 w-5 shrink-0 items-center justify-center text-[#007BFF] dark:text-[#00AEEF]">
                 {icon}
             </span>
             <span className="min-w-0">
@@ -48,12 +48,21 @@ export default function StudentLayout({ student, children }) {
         : null;
 
     const aside = (
-        <div className="flex h-full flex-col">
-            <div className="flex items-center justify-center border-b border-gray-100 px-5 py-5 dark:border-gray-700/60">
-                <ApplicationLogo logo_img="/logo_br.png" className="h-12 w-auto" />
+        <div className="relative flex h-full flex-col overflow-hidden">
+            {/* Panel watermark */}
+            <div className="pointer-events-none absolute inset-0 flex select-none items-end justify-center pb-16">
+                <img
+                    src="/logo_br.png"
+                    alt=""
+                    className="w-56 shrink-0 opacity-[0.12] dark:opacity-[0.16]"
+                />
             </div>
 
-            <div className="px-5 pb-5 pt-6 text-center">
+            <div className="relative flex items-center justify-center px-5 pb-2 pt-6">
+                <ApplicationLogo logo_img="/logo_name_br.png" className="h-10 w-auto" />
+            </div>
+
+            <div className="relative px-5 pb-5 pt-4 text-center">
                 <span className="relative mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-[#007BFF] to-[#00AEEF] text-2xl font-semibold text-white shadow-lg shadow-blue-500/25">
                     {user.name.charAt(0).toUpperCase()}
                 </span>
@@ -73,7 +82,7 @@ export default function StudentLayout({ student, children }) {
                 </span>
             </div>
 
-            <ul className="space-y-2.5 px-5">
+            <ul className="relative space-y-4 px-5">
                 <Detail
                     icon={<FaIdBadge />}
                     label={t('student.studentNumber')}
@@ -88,12 +97,12 @@ export default function StudentLayout({ student, children }) {
                 />
             </ul>
 
-            <div className="mt-auto p-5">
+            <div className="relative mt-auto p-5">
                 <Link
                     href={route('logout')}
                     method="post"
                     as="button"
-                    className="flex w-full items-center justify-center gap-x-2 rounded-xl border border-gray-200 px-4 py-2.5 text-sm font-medium text-gray-600 transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-700 dark:border-gray-700 dark:text-gray-300 dark:hover:border-red-500/30 dark:hover:bg-red-500/10 dark:hover:text-red-300"
+                    className="flex w-full items-center justify-center gap-x-2 px-4 py-2.5 text-sm font-medium text-gray-500 transition-colors hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400"
                 >
                     <FaSignOutAlt className="rtl:-scale-x-100" />
                     {t('common.logOut')}
@@ -104,6 +113,15 @@ export default function StudentLayout({ student, children }) {
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50/60 dark:from-gray-900 dark:via-gray-900 dark:to-blue-950/30">
+            {/* Page watermark */}
+            <div className="pointer-events-none fixed inset-0 z-0 flex select-none items-center justify-center overflow-hidden">
+                <img
+                    src="/logo_br.png"
+                    alt=""
+                    className="w-[70rem] max-w-none shrink-0 opacity-[0.14] dark:opacity-[0.2]"
+                />
+            </div>
+
             {mobileMenuOpen && (
                 <div
                     className="fixed inset-0 z-40 bg-gray-900/60 backdrop-blur-sm lg:hidden"
@@ -113,7 +131,7 @@ export default function StudentLayout({ student, children }) {
 
             {/* Mobile drawer */}
             <div
-                className={`fixed inset-y-0 start-0 z-50 w-80 transform overflow-y-auto border-e border-gray-100 bg-white shadow-2xl transition-transform duration-300 ease-in-out dark:border-gray-700/50 dark:bg-gray-800 lg:hidden ${
+                className={`fixed inset-y-0 start-0 z-50 w-80 transform overflow-y-auto bg-white shadow-[0_0_40px_-8px_rgba(15,23,42,0.25)] transition-transform duration-300 ease-in-out dark:bg-gray-800 lg:hidden ${
                     mobileMenuOpen ? 'translate-x-0' : 'ltr:-translate-x-full rtl:translate-x-full'
                 }`}
             >
@@ -121,11 +139,11 @@ export default function StudentLayout({ student, children }) {
             </div>
 
             {/* Desktop sidebar */}
-            <aside className="fixed inset-y-4 start-4 z-50 hidden w-80 overflow-y-auto rounded-[2rem] border border-gray-100/80 bg-white/70 shadow-sm backdrop-blur-xl dark:border-gray-700/40 dark:bg-gray-800/60 lg:block">
+            <aside className="fixed inset-y-4 start-4 z-50 hidden w-80 overflow-y-auto rounded-3xl border border-gray-100/70 bg-white shadow-[0_18px_40px_-18px_rgba(15,23,42,0.18)] dark:border-gray-700/40 dark:bg-gray-800 dark:shadow-[0_18px_40px_-18px_rgba(0,0,0,0.55)] lg:block">
                 {aside}
             </aside>
 
-            <div className="lg:ps-[22.5rem]">
+            <div className="relative z-10 lg:ps-[22.5rem]">
                 <button
                     type="button"
                     className="fixed top-6 start-6 z-40 rounded-xl border border-gray-100 bg-white/90 p-2.5 text-gray-600 shadow-sm backdrop-blur transition-colors hover:text-[#007BFF] dark:border-gray-700/50 dark:bg-gray-800/90 dark:text-gray-300 lg:hidden"
@@ -135,17 +153,8 @@ export default function StudentLayout({ student, children }) {
                     <FaBars className="h-5 w-5" />
                 </button>
 
-                <main className="relative flex min-h-screen items-center justify-center overflow-hidden p-6 pt-24 sm:p-8 lg:p-12 lg:pt-8">
-                    {/* Watermark */}
-                    <div className="pointer-events-none absolute inset-0 flex select-none items-center justify-center">
-                        <img
-                            src="/logo_br.png"
-                            alt=""
-                            className="w-[60rem] max-w-none shrink-0 opacity-[0.14] dark:opacity-[0.2]"
-                        />
-                    </div>
-
-                    <div className="relative w-full max-w-xl">{children}</div>
+                <main className="flex min-h-screen items-center justify-center p-6 pt-24 sm:p-8 lg:p-12 lg:pt-8">
+                    <div className="w-full max-w-xl">{children}</div>
                 </main>
             </div>
         </div>
