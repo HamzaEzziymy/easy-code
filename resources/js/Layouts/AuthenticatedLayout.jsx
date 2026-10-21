@@ -39,8 +39,16 @@ export default function AuthenticatedLayout({ header, children }) {
     }, []);
 
     return (
-        <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-            {/* Mobile menu overlay */}
+        <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50/60 dark:from-gray-900 dark:via-gray-900 dark:to-blue-950/30">
+            {/* Page watermark */}
+            <div className="pointer-events-none fixed inset-0 z-0 flex select-none items-center justify-center overflow-hidden">
+                <img
+                    src="/logo_br.png"
+                    alt=""
+                    className="w-[70rem] max-w-none shrink-0 opacity-[0.14] dark:opacity-[0.2]"
+                />
+            </div>
+
             {mobileMenuOpen && (
                 <div
                     className="fixed inset-0 z-40 bg-gray-600 bg-opacity-75 lg:hidden"
@@ -51,7 +59,7 @@ export default function AuthenticatedLayout({ header, children }) {
             <Sidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen}  />
 
             {/* Main content */}
-            <div className={`transition-all duration-300 ${!sidebarOpen ? 'lg:ps-20':'lg:ps-64'}`}>
+            <div className={`relative z-10 transition-all duration-300 ${!sidebarOpen ? 'lg:ps-20':'lg:ps-64'}`}>
                 {/* Top navigation */}
                 <div className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-x-4 border-b border-gray-200 bg-white px-4 shadow-sm dark:border-gray-700 dark:bg-gray-800 sm:gap-x-6 sm:px-6 lg:px-8">
                     <button

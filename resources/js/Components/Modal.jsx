@@ -27,7 +27,13 @@ export default function Modal({
     }[maxWidth];
 
     return (
-        <Transition show={show} leave="duration-200">
+        <Transition
+            show={show}
+            unmount
+            leave="transition-opacity duration-200 ease-in"
+            leaveFrom="opacity-100"
+            leaveTo="opacity-0"
+        >
             <Dialog
                 as="div"
                 id="modal"
@@ -35,10 +41,10 @@ export default function Modal({
                 onClose={close}
             >
                 <TransitionChild
-                    enter="ease-out duration-300"
+                    enter="transition-opacity ease-out duration-300"
                     enterFrom="opacity-0"
                     enterTo="opacity-100"
-                    leave="ease-in duration-200"
+                    leave="transition-opacity ease-in duration-200"
                     leaveFrom="opacity-100"
                     leaveTo="opacity-0"
                 >
@@ -46,10 +52,10 @@ export default function Modal({
                 </TransitionChild>
 
                 <TransitionChild
-                    enter="ease-out duration-300"
+                    enter="transition-all ease-out duration-300"
                     enterFrom="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
                     enterTo="opacity-100 translate-y-0 sm:scale-100"
-                    leave="ease-in duration-200"
+                    leave="transition-all ease-in duration-200"
                     leaveFrom="opacity-100 translate-y-0 sm:scale-100"
                     leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
                 >

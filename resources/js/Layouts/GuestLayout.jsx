@@ -19,7 +19,7 @@ export default function GuestLayout({ children }) {
 
     return (
         <div className="relative flex min-h-screen">
-            <div className="fixed top-4 end-4 z-20 rounded-lg bg-white/70 shadow-sm dark:bg-gray-800/70">
+            <div className="fixed top-4 end-4 z-20 rounded-lg bg-white shadow-sm dark:bg-gray-800">
                 <LanguageSwitcher />
             </div>
 

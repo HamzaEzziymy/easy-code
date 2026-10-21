@@ -37,7 +37,7 @@ export default function StudentLogin() {
                     </h2>
                 </div>
 
-                <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 dark:border-gray-700/50 p-8">
+                <div className="bg-white dark:bg-gray-800 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 dark:border-gray-700 p-8">
                     <h2 className="hidden lg:block text-2xl font-bold text-gray-800 dark:text-white mb-1">
                         {t('studentLogin.heading')}
                     </h2>

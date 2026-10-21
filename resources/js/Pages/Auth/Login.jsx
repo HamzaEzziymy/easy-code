@@ -48,7 +48,7 @@
 //                     <h2 className="text-2xl m-8 font-bold text-gray-800 dark:text-white">Welcome Back</h2>
 //                 </div>
 
-//                 <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 dark:border-gray-700/50 p-8">
+//                 <div className="bg-white dark:bg-gray-800 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 dark:border-gray-700 p-8">
 //                     <form onSubmit={submit}>
 //                         <div className="mb-6">
 //                             <InputLabel 
@@ -202,7 +202,7 @@ export default function Login({ status, canResetPassword }) {
                     <h2 className="text-2xl m-8 font-bold text-gray-800 dark:text-white">{t('common.welcomeBack')}</h2>
                 </div>
 
-                <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 dark:border-gray-700/50 p-8">
+                <div className="bg-white dark:bg-gray-800 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 dark:border-gray-700 p-8">
                     <form onSubmit={submit}>
                         <div className="mb-6">
                             <InputLabel 
@@ -242,7 +242,7 @@ export default function Login({ status, canResetPassword }) {
                                 <button
                                     type="button"
                                     onClick={() => setShowPassword(!showPassword)}
-                                    className="absolute end-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 hover:text-[#007BFF] dark:hover:text-[#00AEEF] focus:outline-none transition-colors duration-200"
+                                    className="absolute end-3 top-1/2 -translate-y-1/2 text-gray-600 dark:text-gray-300 hover:text-[#007BFF] dark:hover:text-[#00AEEF] focus:outline-none transition-colors duration-200"
                                 >
                                     {showPassword ? (
                                         <IoEyeOff className="w-5 h-5" />

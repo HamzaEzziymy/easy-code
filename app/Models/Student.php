@@ -12,6 +12,11 @@ class Student extends Model
         'user_id',
         'license_category_id',
         'student_number',
+        'photo_path',
+        'cin',
+        'birth_date',
+        'birthplace',
+        'gender',
         'phone',
         'enrollment_date',
         'status',
@@ -22,6 +27,7 @@ class Student extends Model
     {
         return [
             'enrollment_date' => 'date',
+            'birth_date' => 'date',
         ];
     }
 

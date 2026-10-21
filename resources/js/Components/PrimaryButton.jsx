@@ -8,8 +8,8 @@ export default function PrimaryButton({
         <button
             {...props}
             className={
-                `inline-flex items-center rounded-md border border-transparent bg-gray-800 px-4 py-2 text-xs font-semibold uppercase tracking-widest text-white transition duration-150 ease-in-out hover:bg-gray-700 focus:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 active:bg-gray-900 dark:bg-gray-200 dark:text-gray-800 dark:hover:bg-white dark:focus:bg-white dark:focus:ring-offset-gray-800 dark:active:bg-gray-300 ${
-                    disabled && 'opacity-25'
+                `inline-flex items-center rounded-md border border-transparent bg-[#007BFF] px-4 py-2 text-xs font-semibold uppercase tracking-widest text-white transition duration-150 ease-in-out hover:bg-[#0069d9] focus:bg-[#0069d9] focus:outline-none focus:ring-2 focus:ring-[#007BFF]/40 active:bg-[#0056b3] dark:bg-[#00AEEF] dark:text-gray-900 dark:hover:bg-[#22c1f7] dark:focus:bg-[#22c1f7] dark:active:bg-[#0096cf] ${
+                    disabled && 'opacity-40'
                 } ` + className
             }
             disabled={disabled}

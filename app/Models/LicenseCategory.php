@@ -9,6 +9,7 @@ class LicenseCategory extends Model
 {
     protected $fillable = [
         'code',
+        'icon_path',
         'name_ar',
         'name_fr',
         'description_ar',

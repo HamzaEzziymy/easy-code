@@ -1,7 +1,7 @@
 import React from 'react'
 import { Link } from '@inertiajs/react';
 import ApplicationLogo from '@/Components/ApplicationLogo';
-import {FaHome, FaPaperclip, FaProjectDiagram, FaTasks, FaUser } from 'react-icons/fa';
+import {FaHome, FaLayerGroup, FaPaperclip, FaProjectDiagram, FaTasks, FaUser, FaUsers, FaUserGraduate } from 'react-icons/fa';
 import { IoDocumentsSharp } from "react-icons/io5";
 import { MdAccountTree } from "react-icons/md";
 import { useTranslation } from 'react-i18next';
@@ -19,12 +19,21 @@ function Sidebar({sidebarOpen, setSidebarOpen, mobileMenuOpen, setMobileMenuOpen
             href: route('dashboard'),
             current: route().current('dashboard'),
         },
+        { key: 'users', label: t('nav.users'),icon:<FaUsers size={20}/>, href: route('users.index'), current: route().current('users.*') },
+        { key: 'students', label: t('nav.students'),icon:<FaUserGraduate size={20}/>, href: route('students.index'), current: route().current('students.*') },
+        { key: 'categories', label: t('nav.categories'),icon:<FaLayerGroup size={20}/>, href: route('categories.index'), current: route().current('categories.*') },
         { key: 'structure', label: t('nav.structure'),icon:<MdAccountTree size={20}/>, href: '#', current: false },
         { key: 'projects', label: t('nav.projects'),icon:<FaProjectDiagram size={20}/>, href: '#', current: false },
         { key: 'tasks', label: t('nav.tasks'),icon:<FaTasks size={20}/>, href: '#', current: false },
         { key: 'reports', label: t('nav.reports'),icon:<FaPaperclip size={20}/>, href: '#', current: false },
         { key: 'profile', label: t('nav.profile'),icon:<FaUser size={20}/>, href: route('profile.edit'), current: route().current('profile.edit') },
     ];
+
+  const watermark = (
+    <div className="pointer-events-none absolute inset-x-0 bottom-0 flex select-none justify-center pb-6">
+      <img src="/logo_br.png" alt="" className="w-40 max-w-[70%] opacity-[0.12] dark:opacity-[0.16]" />
+    </div>
+  );
 
   return (
     <>
@@ -43,7 +52,7 @@ function Sidebar({sidebarOpen, setSidebarOpen, mobileMenuOpen, setMobileMenuOpen
                     </svg>
                 </button>
             </div>
-            <nav className="mt-5 space-y-1 px-3">
+            <nav className="relative mt-5 space-y-1 px-3">
                 {navigation.map((item) => (
                     <Link
                         key={item.key}
@@ -59,6 +68,7 @@ function Sidebar({sidebarOpen, setSidebarOpen, mobileMenuOpen, setMobileMenuOpen
                     </Link>
                 ))}
             </nav>
+            {watermark}
         </div>
 
         {/* Sidebar for desktop */}
@@ -80,7 +90,7 @@ function Sidebar({sidebarOpen, setSidebarOpen, mobileMenuOpen, setMobileMenuOpen
                         </svg>
                     </button>
                 </div>
-                <nav className="flex flex-1 flex-col px-3">
+                <nav className="relative flex flex-1 flex-col px-3">
                     <ul className="space-y-1">
                         {navigation.map((item) => (
                             <li key={item.key}>
@@ -102,6 +112,7 @@ function Sidebar({sidebarOpen, setSidebarOpen, mobileMenuOpen, setMobileMenuOpen
                         ))}
                     </ul>
                 </nav>
+                {watermark}
             </div>
         </div>
     </>
