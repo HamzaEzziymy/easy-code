@@ -64,11 +64,10 @@ export default function CategoryForm({ show, category, onClose }) {
             },
         };
 
-        if (category) {
-            form.patch(route('categories.update', category.id), options);
-            return;
-        }
-        form.post(route('categories.store'), options);
+        // PHP only reads a multipart body on POST, so the PATCH has to be spoofed.
+        form.transform((data) => (category ? { ...data, _method: 'patch' } : data));
+
+        form.post(category ? route('categories.update', category.id) : route('categories.store'), options);
     };
 
     const shownIcon = iconPreview ?? category?.iconUrl;

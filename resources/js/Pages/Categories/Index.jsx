@@ -135,7 +135,7 @@ export default function Index({ categories, filters, stats }) {
             <Head title={t('categories.title')} />
 
             <div className="py-8">
-                <div className="mx-auto max-w-6xl space-y-5 px-4 sm:px-6 lg:px-8">
+                <div className="mx-auto max-w-7xl space-y-5 px-4 sm:px-6 lg:px-8">
                     {notice && (
                         <div
                             className={`rounded-2xl border px-4 py-3 text-sm shadow-sm ${
@@ -199,7 +199,7 @@ export default function Index({ categories, filters, stats }) {
                             </div>
                         </div>
 
-                        <div className="-mx-4 overflow-x-auto px-4">
+                        <div className="overflow-x-auto">
                             <table className="w-full min-w-[840px] border-separate border-spacing-0 text-start">
                                 <thead>
                                     <tr className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">

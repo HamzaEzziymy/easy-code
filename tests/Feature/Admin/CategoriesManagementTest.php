@@ -244,6 +244,32 @@ class CategoriesManagementTest extends TestCase
         $this->assertFalse($category->is_active);
     }
 
+    public function test_the_modal_sends_its_edit_as_a_post_with_a_spoofed_patch(): void
+    {
+        Storage::fake('local');
+        $actor = $this->admin();
+        $category = $this->category(['code' => 'B', 'is_active' => false]);
+
+        // A multipart body is only parsed by PHP on POST, so the dialog rides on method spoofing
+        // and sends every field as a string, exactly like the browser does.
+        $this->actingAs($actor)->post("/categories/{$category->id}", [
+            '_method' => 'patch',
+            'code' => 'B',
+            'name_fr' => 'Voiture B1',
+            'name_ar' => 'سيارة ب1',
+            'condition_fr' => '',
+            'condition_ar' => '',
+            'icon' => UploadedFile::fake()->image('b1.png'),
+            'remove_icon' => '0',
+        ])->assertRedirect(route('categories.index'))->assertSessionHas('success', 'updated');
+
+        $category->refresh();
+        $this->assertSame('Voiture B1', $category->name_fr);
+        $this->assertNull($category->description_fr);
+        $this->assertFalse($category->is_active);
+        Storage::disk('local')->assertExists($category->icon_path);
+    }
+
     public function test_an_icon_can_be_replaced_and_the_old_file_is_removed(): void
     {
         Storage::fake('local');

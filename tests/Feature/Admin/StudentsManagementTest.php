@@ -188,6 +188,21 @@ class StudentsManagementTest extends TestCase
         Storage::disk('local')->assertExists($student->photo_path);
     }
 
+    public function test_the_form_sends_an_edit_as_a_post_with_a_spoofed_patch(): void
+    {
+        Storage::fake('local');
+        $actor = $this->admin();
+        $student = $this->makeStudent(['photo' => UploadedFile::fake()->image('first.jpg')]);
+
+        // A multipart body is only parsed by PHP on POST, so the browser rides on method spoofing.
+        $this->actingAs($actor)->post("/students/{$student->id}", $this->payload([
+            '_method' => 'patch',
+            'photo' => UploadedFile::fake()->image('second.jpg'),
+        ]))->assertSessionHas('success', 'updated');
+
+        $this->assertNotNull($student->refresh()->photo_path);
+    }
+
     public function test_the_photo_can_be_removed_from_the_form(): void
     {
         Storage::fake('local');

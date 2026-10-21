@@ -114,11 +114,10 @@ export default function Form({ student, categories, suggestedNumber }) {
 
         const options = { forceFormData: true };
 
-        if (isEdit) {
-            form.patch(route('students.update', student.id), options);
-            return;
-        }
-        form.post(route('students.store'), options);
+        // PHP only reads a multipart body on POST, so the PATCH has to be spoofed.
+        form.transform((data) => (isEdit ? { ...data, _method: 'patch' } : data));
+
+        form.post(isEdit ? route('students.update', student.id) : route('students.store'), options);
     };
 
     const categoryLabel = (category) =>
