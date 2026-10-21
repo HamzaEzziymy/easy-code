@@ -32,16 +32,6 @@ class CategoryController extends Controller
         ]);
     }
 
-    public function create(): Response
-    {
-        return Inertia::render('Categories/Form', ['category' => null]);
-    }
-
-    public function edit(LicenseCategory $category): Response
-    {
-        return Inertia::render('Categories/Form', ['category' => $this->present($category)]);
-    }
-
     public function store(Request $request): RedirectResponse
     {
         $category = new LicenseCategory($this->data($request));
@@ -159,9 +149,9 @@ class CategoryController extends Controller
             'conditionAr' => $category->description_ar,
             'iconUrl' => $this->iconUrl($category),
             'isActive' => $category->is_active,
-            'studentsCount' => $category->students_count ?? $category->students()->count(),
-            'examsCount' => $category->exams_count ?? $category->exams()->count(),
-            'questionsCount' => $category->questions_count ?? $category->questions()->count(),
+            'studentsCount' => $category->students_count,
+            'examsCount' => $category->exams_count,
+            'questionsCount' => $category->questions_count,
         ];
     }
 

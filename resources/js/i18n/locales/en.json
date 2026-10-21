@@ -22,7 +22,8 @@
         "signIn": "Sign in",
         "welcome": "Welcome",
         "welcomeBack": "Welcome Back",
-        "saving": "Saving..."
+        "saving": "Saving...",
+        "close": "Close"
     },
     "nav": {
         "structure": "Structure",
@@ -150,14 +151,12 @@
     "categories": {
         "title": "Categories",
         "subtitle": "Licence categories trainees can be enrolled in",
-        "back": "Back",
         "create": "New category",
         "searchPlaceholder": "Search by code or name",
         "all": "All",
         "active": "Active",
         "inactive": "Inactive",
         "code": "Code",
-        "namesSection": "Code and names",
         "conditionsSection": "Conditions",
         "names": "Names",
         "usage": "Used by",
@@ -174,7 +173,6 @@
         "codeHelp": "For example A, B, C or AC.",
         "conditionFr": "Condition (French)",
         "conditionAr": "Condition (Arabic)",
-        "icon": "Icon",
         "iconHelp": "JPG, PNG or WEBP, up to 2 MB.",
         "chooseIcon": "Choose an image",
         "discardIcon": "Discard",
@@ -191,7 +189,8 @@
             "deleted": "Category deleted.",
             "activated": "Category activated.",
             "deactivated": "Category deactivated."
-        }
+        },
+        "noCondition": "No condition written"
     },
     "enums": {
         "studentStatus": {

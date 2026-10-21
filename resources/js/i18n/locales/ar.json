@@ -22,7 +22,8 @@
         "signIn": "دخول",
         "welcome": "مرحبًا",
         "welcomeBack": "مرحبًا بعودتك",
-        "saving": "جارے الحفظ..."
+        "saving": "جارے الحفظ...",
+        "close": "إغلاق"
     },
     "nav": {
         "structure": "الهيكل",
@@ -150,14 +151,12 @@
     "categories": {
         "title": "الأصناف",
         "subtitle": "أصناف رخص السياقة التي يمكن تسجيل المتدربين فيها",
-        "back": "رجوع",
         "create": "صنف جديد",
         "searchPlaceholder": "ابحث بالرمز أو التسمية",
         "all": "الكل",
         "active": "النشِطة",
         "inactive": "غير النشِطة",
         "code": "الرمز",
-        "namesSection": "الرمز والتسميات",
         "conditionsSection": "الشروط",
         "names": "التسميات",
         "usage": "مستعملة في",
@@ -174,7 +173,6 @@
         "codeHelp": "مثال: A أو B أو C أو AC.",
         "conditionFr": "الشروط (بالفرنسية)",
         "conditionAr": "الشروط (بالعربية)",
-        "icon": "الأيقونة",
         "iconHelp": "JPG أو PNG أو WEBP، في حدود 2 ميغابايت.",
         "chooseIcon": "اختر صورة",
         "discardIcon": "إلغاء",
@@ -191,7 +189,8 @@
             "deleted": "تم حذف الصنف.",
             "activated": "تم تفعيل الصنف.",
             "deactivated": "تم تعطيل الصنف."
-        }
+        },
+        "noCondition": "لا توجد شروط مكتوبة"
     },
     "enums": {
         "studentStatus": {

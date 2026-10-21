@@ -79,37 +79,27 @@ class CategoriesManagementTest extends TestCase
             );
     }
 
-    public function test_the_create_page_renders_an_empty_form(): void
+    public function test_the_list_carries_every_field_the_form_modal_needs(): void
     {
         $actor = $this->admin();
+        $this->category([
+            'code' => 'B',
+            'description_fr' => '18 ans et plus',
+            'description_ar' => '18 سنة وما فوق',
+            'is_active' => false,
+        ]);
 
-        $this->actingAs($actor)->get('/categories/create')
-            ->assertOk()
-            ->assertInertia(fn ($page) => $page->component('Categories/Form')->where('category', null));
-    }
-
-    public function test_the_edit_page_prefills_the_category(): void
-    {
-        $actor = $this->admin();
-        $category = $this->category(['code' => 'B', 'description_fr' => '18 ans et plus']);
-
-        $this->actingAs($actor)->get("/categories/{$category->id}/edit")
+        $this->actingAs($actor)->get('/categories')
             ->assertOk()
             ->assertInertia(fn ($page) => $page
-                ->component('Categories/Form')
-                ->where('category.code', 'B')
-                ->where('category.conditionFr', '18 ans et plus')
-                ->where('category.iconUrl', null)
+                ->component('Categories/Index')
+                ->where('categories.0.nameFr', 'Voiture légère')
+                ->where('categories.0.nameAr', 'سيارة خفيفة')
+                ->where('categories.0.conditionFr', '18 ans et plus')
+                ->where('categories.0.conditionAr', '18 سنة وما فوق')
+                ->where('categories.0.iconUrl', null)
+                ->where('categories.0.isActive', false)
             );
-    }
-
-    public function test_trainees_cannot_open_the_category_form_pages(): void
-    {
-        $trainee = User::factory()->create(['role' => 'student']);
-        $category = $this->category();
-
-        $this->actingAs($trainee)->get('/categories/create')->assertRedirect(route('student.dashboard'));
-        $this->actingAs($trainee)->get("/categories/{$category->id}/edit")->assertRedirect(route('student.dashboard'));
     }
 
     public function test_a_category_can_be_created(): void    {

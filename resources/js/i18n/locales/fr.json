@@ -22,7 +22,8 @@
         "signIn": "Se connecter",
         "welcome": "Bienvenue",
         "welcomeBack": "Bon retour",
-        "saving": "Enregistrement..."
+        "saving": "Enregistrement...",
+        "close": "Fermer"
     },
     "nav": {
         "structure": "Structure",
@@ -150,14 +151,12 @@
     "categories": {
         "title": "Catégories",
         "subtitle": "Les catégories de permis proposées aux stagiaires",
-        "back": "Retour",
         "create": "Nouvelle catégorie",
         "searchPlaceholder": "Rechercher par code ou nom",
         "all": "Toutes",
         "active": "Actives",
         "inactive": "Inactives",
         "code": "Code",
-        "namesSection": "Code et libellés",
         "conditionsSection": "Conditions",
         "names": "Libellés",
         "usage": "Utilisée par",
@@ -174,7 +173,6 @@
         "codeHelp": "Par exemple A, B, C ou AC.",
         "conditionFr": "Condition (français)",
         "conditionAr": "Condition (arabe)",
-        "icon": "Icône",
         "iconHelp": "JPG, PNG ou WEBP, 2 Mo maximum.",
         "chooseIcon": "Choisir une image",
         "discardIcon": "Annuler",
@@ -191,7 +189,8 @@
             "deleted": "Catégorie supprimée.",
             "activated": "Catégorie activée.",
             "deactivated": "Catégorie désactivée."
-        }
+        },
+        "noCondition": "Aucune condition renseignée"
     },
     "enums": {
         "studentStatus": {
