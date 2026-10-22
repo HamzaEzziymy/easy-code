@@ -56,6 +56,7 @@ export default function StudentLogin() {
                                 id="login_code"
                                 name="login_code"
                                 type="text"
+                                dir="ltr"
                                 value={data.login_code}
                                 className="mt-2 block w-full rounded-lg border-gray-300 dark:border-gray-600 shadow-sm font-mono tracking-widest uppercase text-center focus:border-[#007BFF] dark:focus:border-[#00AEEF] focus:ring-[#007BFF] dark:focus:ring-[#00AEEF] bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-all duration-200"
                                 autoComplete="username"

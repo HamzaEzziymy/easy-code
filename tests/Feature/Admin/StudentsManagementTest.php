@@ -2,11 +2,16 @@
 
 namespace Tests\Feature\Admin;
 
+use App\Models\AnswerOption;
+use App\Models\AttemptAnswer;
+use App\Models\AttemptAnswerOption;
 use App\Models\Exam;
 use App\Models\ExamAttempt;
 use App\Models\LicenseCategory;
+use App\Models\Question;
 use App\Models\Student;
 use App\Models\StudentAppointment;
+use App\Models\StudentSuccessRecord;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -38,7 +43,10 @@ class StudentsManagementTest extends TestCase
     private function payload(array $overrides = []): array
     {
         return $overrides + [
-            'name' => 'Youssef Test',
+            'first_name' => 'Youssef',
+            'last_name' => 'Test',
+            'first_name_ar' => 'يوسف',
+            'last_name_ar' => 'تيست',
             'login_code' => 'EC-2026-7001',
             'student_number' => 'EC-2026-7001',
             'license_category_id' => $this->category()->id,
@@ -158,7 +166,8 @@ class StudentsManagementTest extends TestCase
         $student = $this->makeStudent();
 
         $this->actingAs($actor)->patch("/students/{$student->id}", $this->payload([
-            'name' => 'Renamed Pupil',
+            'first_name' => 'Renamed',
+            'last_name' => 'Pupil',
             'birthplace' => 'Rabat',
             'login_code' => '',
             'student_number' => 'EC-2026-7001',
@@ -166,8 +175,141 @@ class StudentsManagementTest extends TestCase
 
         $student->refresh();
         $this->assertSame('Renamed Pupil', $student->user->name);
+        $this->assertSame('Renamed', $student->first_name);
         $this->assertSame('Rabat', $student->birthplace);
         $this->assertTrue($student->user->matchesLoginCode('EC-2026-7001'));
+    }
+
+    public function test_the_family_and_given_names_are_required(): void
+    {
+        $actor = $this->admin();
+
+        $this->actingAs($actor)->post('/students', $this->payload(['first_name' => '', 'last_name' => '']))
+            ->assertSessionHasErrors(['first_name', 'last_name']);
+
+        $this->assertSame(0, Student::count());
+    }
+
+    public function test_the_national_id_is_required(): void
+    {
+        $actor = $this->admin();
+
+        $this->actingAs($actor)->post('/students', $this->payload(['cin' => '']))
+            ->assertSessionHasErrors('cin');
+
+        $this->assertSame(0, Student::count());
+    }
+
+    public function test_the_gender_is_required_and_offers_only_two_answers(): void
+    {
+        $actor = $this->admin();
+
+        $this->actingAs($actor)->post('/students', $this->payload(['gender' => '']))
+            ->assertSessionHasErrors('gender');
+
+        $this->actingAs($actor)->post('/students', $this->payload(['gender' => 'unknown']))
+            ->assertSessionHasErrors('gender');
+
+        $this->actingAs($actor)->post('/students', $this->payload(['gender' => 'female']))
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame('female', Student::firstOrFail()->gender);
+    }
+
+    public function test_the_seance_bar_on_the_file_page_records_the_sessions(): void
+    {
+        $actor = $this->admin();
+        $student = $this->makeStudent();
+
+        $this->assertNull($student->lessons_count);
+
+        $this->actingAs($actor)->patch("/students/{$student->id}/lessons", ['lessons_count' => 12])
+            ->assertRedirect();
+
+        $this->assertSame(12, $student->refresh()->lessons_count);
+
+        // Clicking the last filled square again takes one back off.
+        $this->actingAs($actor)->patch("/students/{$student->id}/lessons", ['lessons_count' => 11]);
+        $this->assertSame(11, $student->refresh()->lessons_count);
+
+        $this->actingAs($actor)->patch("/students/{$student->id}/lessons", ['lessons_count' => 0]);
+        $this->assertSame(0, $student->refresh()->lessons_count);
+
+        // The rest of the file is untouched by the click.
+        $this->assertSame('EC-2026-7001', $student->refresh()->student_number);
+    }
+
+    public function test_the_seance_bar_refuses_more_sessions_than_it_has_squares(): void
+    {
+        $actor = $this->admin();
+        $student = $this->makeStudent();
+
+        $this->actingAs($actor)->patch("/students/{$student->id}/lessons", ['lessons_count' => 31])
+            ->assertSessionHasErrors('lessons_count');
+
+        $this->assertNull($student->refresh()->lessons_count);
+    }
+
+    public function test_a_trainee_cannot_click_the_seance_bar(): void
+    {
+        $student = $this->makeStudent();
+
+        $this->actingAs($student->user)
+            ->patch("/students/{$student->id}/lessons", ['lessons_count' => 30])
+            ->assertRedirect(route('student.dashboard'));
+
+        $this->assertNull($student->refresh()->lessons_count);
+    }
+
+    public function test_the_maximum_squares_set_how_many_seances_the_bar_has(): void
+    {
+        $actor = $this->admin();
+        $student = $this->makeStudent(['lessons_total' => 40]);
+
+        $this->assertSame(40, $student->lessons_total);
+
+        // A maximum larger than the bar's squares is refused, but squares-sized counts pass.
+        $this->actingAs($actor)->patch("/students/{$student->id}/lessons", ['lessons_count' => 41])
+            ->assertSessionHasErrors('lessons_count');
+
+        $this->actingAs($actor)->patch("/students/{$student->id}/lessons", ['lessons_count' => 40]);
+        $this->assertSame(40, $student->refresh()->lessons_count);
+
+        $this->actingAs($actor)->get("/students/{$student->id}")
+            ->assertInertia(fn ($page) => $page->where('student.lessonsTotal', 40));
+    }
+
+    public function test_the_form_folds_arabic_digits_in_the_maximum(): void
+    {
+        $this->actingAs($this->admin())
+            ->post('/students', $this->payload(['lessons_total' => '٢٥']))
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame(25, Student::firstOrFail()->lessons_total);
+    }
+
+    public function test_the_maximum_is_capped_at_the_two_squares(): void
+    {
+        $this->actingAs($this->admin())
+            ->post('/students', $this->payload(['lessons_total' => '100']))
+            ->assertSessionHasErrors('lessons_total');
+    }
+
+    public function test_lowering_the_maximum_trims_the_recorded_sessions(): void
+    {
+        $actor = $this->admin();
+        $student = $this->makeStudent();
+
+        $this->actingAs($actor)->patch("/students/{$student->id}/lessons", ['lessons_count' => 20]);
+        $this->assertSame(20, $student->refresh()->lessons_count);
+
+        $this->actingAs($actor)->patch("/students/{$student->id}", $this->payload([
+            'lessons_total' => 12,
+        ]));
+
+        $student->refresh();
+        $this->assertSame(12, $student->lessons_total);
+        $this->assertSame(12, $student->lessons_count);
     }
 
     public function test_a_new_photo_replaces_the_previous_one(): void
@@ -221,6 +363,8 @@ class StudentsManagementTest extends TestCase
         $actor = $this->admin();
         $student = $this->makeStudent();
 
+        $this->actingAs($actor)->patch("/students/{$student->id}/lessons", ['lessons_count' => 12]);
+
         $exam = Exam::create([
             'license_category_id' => $this->category()->id,
             'created_by' => $actor->id,
@@ -260,6 +404,9 @@ class StudentsManagementTest extends TestCase
             ->assertInertia(fn ($page) => $page
                 ->component('Students/Show')
                 ->where('student.name', 'Youssef Test')
+                ->where('student.firstNameAr', 'يوسف')
+                ->where('student.lessonsCount', 12)
+                ->where('student.loginCode', 'EC-2026-7001')
                 ->where('student.category.code', 'B')
                 ->has('student.appointments', 1)
                 ->has('student.successRecords', 0)
@@ -319,7 +466,7 @@ class StudentsManagementTest extends TestCase
         Storage::disk('local')->assertMissing($path);
     }
 
-    public function test_a_file_with_history_cannot_be_deleted(): void
+    public function test_deleting_a_file_also_removes_its_history(): void
     {
         $actor = $this->admin();
         $student = $this->makeStudent();
@@ -334,6 +481,47 @@ class StudentsManagementTest extends TestCase
             'status' => 'published',
         ]);
 
+        $question = Question::create([
+            'license_category_id' => $this->category()->id,
+            'created_by' => $actor->id,
+            'question_type' => 'single_choice',
+        ]);
+
+        $option = AnswerOption::create([
+            'question_id' => $question->id,
+            'option_key' => 'A',
+            'is_correct' => true,
+            'sort_order' => 1,
+        ]);
+
+        $attempt = ExamAttempt::create([
+            'student_id' => $student->id,
+            'exam_id' => $exam->id,
+            'attempt_number' => 1,
+            'started_at' => now()->subDays(2),
+            'status' => 'submitted',
+            'score' => 34,
+            'max_score' => 40,
+            'percentage' => 85,
+            'pass_percentage_snapshot' => 70,
+            'is_passed' => true,
+        ]);
+
+        $answer = AttemptAnswer::create([
+            'attempt_id' => $attempt->id,
+            'question_id' => $question->id,
+            'question_text_snapshot' => 'Combien de voies ?',
+            'question_type_snapshot' => 'single_choice',
+            'is_correct' => true,
+        ]);
+
+        AttemptAnswerOption::create([
+            'attempt_answer_id' => $answer->id,
+            'answer_option_id' => $option->id,
+            'option_text_snapshot' => 'Deux',
+            'is_correct_at_attempt' => true,
+        ]);
+
         StudentAppointment::create([
             'student_id' => $student->id,
             'exam_id' => $exam->id,
@@ -343,10 +531,58 @@ class StudentsManagementTest extends TestCase
             'created_by' => $actor->id,
         ]);
 
-        $this->actingAs($actor)->delete("/students/{$student->id}")->assertSessionHasErrors('students');
+        StudentSuccessRecord::create([
+            'student_id' => $student->id,
+            'license_category_id' => $this->category()->id,
+            'success_type' => 'code',
+            'achieved_at' => now(),
+            'recorded_by' => $actor->id,
+        ]);
 
-        $this->assertSame(1, Student::count());
-        $this->assertTrue($student->user->refresh()->exists());
+        $this->actingAs($actor)->delete("/students/{$student->id}")
+            ->assertRedirect(route('students.index'))->assertSessionHas('success', 'deleted');
+
+        $this->assertSame(0, Student::count());
+        $this->assertFalse(User::find($student->user_id)?->exists() ?? false);
+        $this->assertSame(0, ExamAttempt::count());
+        $this->assertSame(0, AttemptAnswer::count());
+        $this->assertSame(0, AttemptAnswerOption::count());
+        $this->assertSame(0, StudentAppointment::count());
+        $this->assertSame(0, StudentSuccessRecord::count());
+
+        // The shared catalogue stays where it is.
+        $this->assertSame(1, Exam::count());
+        $this->assertSame(1, Question::count());
+        $this->assertSame(1, AnswerOption::count());
+    }
+
+    public function test_the_list_reports_the_history_a_deletion_would_remove(): void
+    {
+        $actor = $this->admin();
+        $student = $this->makeStudent();
+
+        ExamAttempt::create([
+            'student_id' => $student->id,
+            'exam_id' => Exam::create([
+                'license_category_id' => $this->category()->id,
+                'created_by' => $actor->id,
+                'title_fr' => 'Code',
+                'title_ar' => 'المدوناة',
+                'duration_minutes' => 30,
+                'pass_percentage' => 70,
+                'status' => 'published',
+            ])->id,
+            'attempt_number' => 1,
+            'started_at' => now(),
+            'status' => 'submitted',
+        ]);
+
+        $this->actingAs($actor)->get('/students')
+            ->assertInertia(fn ($page) => $page
+                ->where('students.data.0.history.attempts', 1)
+                ->where('students.data.0.history.appointments', 0)
+                ->where('students.data.0.history.records', 0)
+            );
     }
 
     public function test_search_and_filters_narrow_the_list(): void
@@ -356,7 +592,10 @@ class StudentsManagementTest extends TestCase
         $this->makeStudent(['student_number' => 'EC-2026-7002', 'login_code' => 'EC-2026-7002', 'cin' => 'BB2', 'status' => 'suspended']);
 
         $this->actingAs($actor)->get('/students?search=BB2')
-            ->assertInertia(fn ($page) => $page->has('students.data', 1)->where('students.data.0.cin', 'BB2'));
+            ->assertInertia(fn ($page) => $page
+                ->has('students.data', 1)
+                ->where('students.data.0.studentNumber', 'EC-2026-7002')
+            );
 
         $this->actingAs($actor)->get('/students?status=suspended')
             ->assertInertia(fn ($page) => $page->has('students.data', 1)->where('students.total', 1));
@@ -366,6 +605,23 @@ class StudentsManagementTest extends TestCase
 
         $this->actingAs($actor)->get('/students?sort=student_number&direction=asc')
             ->assertInertia(fn ($page) => $page->where('students.data.0.studentNumber', 'EC-2026-7001'));
+    }
+
+    public function test_the_contact_column_carries_the_phone_and_the_email(): void
+    {
+        $actor = $this->admin();
+        $this->makeStudent([
+            'student_number' => 'EC-2026-7010',
+            'login_code' => 'EC-2026-7010',
+            'email' => 'pupil@example.com',
+            'phone' => '0622222222',
+        ]);
+
+        $this->actingAs($actor)->get('/students?search=EC-2026-7010')
+            ->assertInertia(fn ($page) => $page
+                ->where('students.data.0.phone', '0622222222')
+                ->where('students.data.0.email', 'pupil@example.com')
+            );
     }
 
     public function test_a_blocked_account_is_hidden_by_the_access_filter(): void
@@ -393,5 +649,96 @@ class StudentsManagementTest extends TestCase
                 ->where('suggestedNumber', 'EC-'.now()->format('Y').'-7002')
                 ->has('categories', 1)
             );
+    }
+
+    public function test_the_edit_form_hands_the_current_login_code_back(): void
+    {
+        $actor = $this->admin();
+        $student = $this->makeStudent();
+
+        $this->actingAs($actor)->get("/students/{$student->id}/edit")
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Students/Form')
+                ->where('student.loginCode', 'EC-2026-7001')
+                ->where('student.firstName', 'Youssef')
+                ->where('student.lastName', 'Test')
+            );
+    }
+
+    public function test_assigning_a_new_code_updates_the_readable_copy(): void
+    {
+        $actor = $this->admin();
+        $student = $this->makeStudent();
+
+        $this->actingAs($actor)->patch("/students/{$student->id}", $this->payload([
+            'login_code' => 'ec-2026-7009',
+            'student_number' => 'EC-2026-7001',
+        ]));
+
+        $account = $student->user->refresh();
+        $this->assertSame('EC-2026-7009', $account->login_code);
+        $this->assertTrue($account->matchesLoginCode('EC-2026-7009'));
+    }
+
+    public function test_a_short_numeric_code_is_accepted_and_arabic_digits_are_folded(): void
+    {
+        $actor = $this->admin();
+
+        $this->actingAs($actor)->post('/students', $this->payload([
+            'login_code' => '١٢٣',
+            'student_number' => 'EC-2026-7010',
+        ]))->assertSessionMissing('errors');
+
+        $account = User::where('login_code', '123')->first();
+        $this->assertNotNull($account);
+        $this->assertTrue($account->matchesLoginCode('123'));
+        $this->assertTrue($account->matchesLoginCode('١٢٣'));
+
+        $this->actingAs($actor)->post('/students', $this->payload([
+            'login_code' => '12',
+            'student_number' => 'EC-2026-7011',
+        ]))->assertSessionHasErrors('login_code');
+    }
+
+    public function test_search_matches_the_arabic_name_and_the_login_code(): void
+    {
+        $actor = $this->admin();
+        $this->makeStudent(['login_code' => 'EC-2026-9001']);
+        $this->makeStudent([
+            'student_number' => 'EC-2026-7002',
+            'login_code' => 'EC-2026-9002',
+            'first_name' => 'Amina',
+            'last_name' => 'Test',
+            'first_name_ar' => 'أمينة',
+        ]);
+
+        $this->actingAs($actor)->get('/students?search=أمينة')
+            ->assertInertia(fn ($page) => $page
+                ->has('students.data', 1)
+                ->where('students.data.0.studentNumber', 'EC-2026-7002')
+            );
+
+        $this->actingAs($actor)->get('/students?search=EC-2026-9002')
+            ->assertInertia(fn ($page) => $page
+                ->has('students.data', 1)
+                ->where('students.data.0.loginCode', 'EC-2026-9002')
+            );
+    }
+
+    public function test_a_file_keeps_its_category_in_the_choices_after_the_category_is_switched_off(): void
+    {
+        $actor = $this->admin();
+        $student = $this->makeStudent();
+        $this->category()->update(['is_active' => false]);
+
+        $this->actingAs($actor)->get("/students/{$student->id}/edit")
+            ->assertInertia(fn ($page) => $page
+                ->has('categories', 1)
+                ->where('student.licenseCategoryId', $this->category()->id)
+            );
+
+        $this->actingAs($actor)->get('/students/create')
+            ->assertInertia(fn ($page) => $page->has('categories', 0));
     }
 }

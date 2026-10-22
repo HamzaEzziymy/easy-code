@@ -220,17 +220,17 @@ export default function Index({ categories, filters, stats }) {
                                         >
                                             <td className={`${cell} ps-1`}>
                                                 <div className="flex items-center gap-x-3">
-                                                    <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-600 dark:bg-gray-900">
-                                                        {category.iconUrl ? (
-                                                            <img
-                                                                src={category.iconUrl}
-                                                                alt=""
-                                                                className="h-full w-full object-contain p-1"
-                                                            />
-                                                        ) : (
+                                                    {category.iconUrl ? (
+                                                        <img
+                                                            src={category.iconUrl}
+                                                            alt=""
+                                                            className="h-10 w-10 shrink-0 object-contain"
+                                                        />
+                                                    ) : (
+                                                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-dashed border-gray-300 dark:border-gray-600">
                                                             <FaInbox size={14} className="text-gray-300 dark:text-gray-600" />
-                                                        )}
-                                                    </span>
+                                                        </span>
+                                                    )}
                                                     <span className="rounded-lg bg-[#007BFF]/10 px-2.5 py-1 font-mono text-sm font-bold text-[#007BFF] dark:bg-[#00AEEF]/15 dark:text-[#00AEEF]">
                                                         {category.code}
                                                     </span>

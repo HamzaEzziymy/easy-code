@@ -3,6 +3,7 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Support\Digits;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -25,6 +26,7 @@ class User extends Authenticatable
         'password',
         'role',
         'login_code_hash',
+        'login_code',
         'is_active',
         'failed_login_attempts',
         'last_login_at',
@@ -39,6 +41,7 @@ class User extends Authenticatable
         'password',
         'remember_token',
         'login_code_hash',
+        'login_code',
     ];
 
     /**
@@ -69,12 +72,22 @@ class User extends Authenticatable
 
     /**
      * Deterministic (and so directly lookupable via the unique login_code_hash index)
-     * because the app key acts as the salt; codes are trimmed and case-folded here,
-     * so every code must be issued through this helper to stay verifiable.
+     * because the app key acts as the salt; codes are trimmed, case-folded and have any
+     * Arabic-Indic digits folded to Latin here, so every code must be issued through
+     * this helper to stay verifiable.
      */
     public static function hashLoginCode(string $code): string
     {
-        return hash_hmac('sha256', mb_strtoupper(trim($code)), (string) config('app.key'));
+        return hash_hmac('sha256', static::normalizeLoginCode($code), (string) config('app.key'));
+    }
+
+    /**
+     * An Arabic keyboard hands back ١٢٣ where the code was issued as 123, so both
+     * spellings have to reach the same hash.
+     */
+    public static function normalizeLoginCode(string $code): string
+    {
+        return mb_strtoupper(Digits::latin(trim($code)));
     }
 
     public function matchesLoginCode(string $code): bool

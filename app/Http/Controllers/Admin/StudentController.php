@@ -3,10 +3,12 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\AttemptAnswer;
+use App\Models\AttemptAnswerOption;
 use App\Models\LicenseCategory;
 use App\Models\Student;
 use App\Models\User;
-use Illuminate\Database\QueryException;
+use App\Support\Digits;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -25,10 +27,20 @@ class StudentController extends Controller
 
     private const GENDERS = ['male', 'female'];
 
+    /**
+     * Squares a file's bar gets, so sessions it accepts, when staff never entered a number.
+     */
+    private const DEFAULT_SEANCES = 30;
+
     private const PROFILE_FIELDS = [
         'student_number',
         'license_category_id',
+        'first_name',
+        'last_name',
+        'first_name_ar',
+        'last_name_ar',
         'phone',
+        'lessons_total',
         'cin',
         'birth_date',
         'birthplace',
@@ -74,6 +86,8 @@ class StudentController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
+        $this->foldSquares($request);
+
         $data = $request->validate($this->rules($request));
 
         if ($this->codeRequested($request) && $this->codeTaken($request)) {
@@ -81,16 +95,18 @@ class StudentController extends Controller
         }
 
         $student = DB::transaction(function () use ($request, $data) {
+            $profile = new Student(Arr::only($data, self::PROFILE_FIELDS));
+
             $account = User::create([
-                'name' => $data['name'],
+                'name' => $profile->displayName(),
                 'email' => $data['email'] ?? null,
                 'password' => null,
                 'role' => 'student',
                 'login_code_hash' => $this->codeHash($request),
+                'login_code' => $this->plainCode($request),
                 'is_active' => true,
             ]);
 
-            $profile = new Student(Arr::only($data, self::PROFILE_FIELDS));
             $profile->user_id = $account->id;
             $profile->photo_path = $this->storePhoto($request);
             $profile->save();
@@ -115,30 +131,9 @@ class StudentController extends Controller
 
         return Inertia::render('Students/Show', [
             'student' => [
-                'id' => $student->id,
-                'userId' => $student->user_id,
-                'name' => $student->user?->name,
-                'email' => $student->user?->email,
-                'isActive' => (bool) $student->user?->is_active,
-                'hasLoginCode' => $student->user?->login_code_hash !== null,
+                ...$this->card($student),
                 'lastLoginAt' => $student->user?->last_login_at?->toIso8601String(),
                 'createdAt' => $student->created_at?->toIso8601String(),
-                'studentNumber' => $student->student_number,
-                'phone' => $student->phone,
-                'cin' => $student->cin,
-                'birthDate' => $student->birth_date?->toDateString(),
-                'birthplace' => $student->birthplace,
-                'gender' => $student->gender,
-                'enrollmentDate' => $student->enrollment_date?->toDateString(),
-                'status' => $student->status,
-                'notes' => $student->notes,
-                'photoUrl' => $this->photoUrl($student),
-                'category' => $student->licenseCategory ? [
-                    'id' => $student->licenseCategory->id,
-                    'code' => $student->licenseCategory->code,
-                    'nameFr' => $student->licenseCategory->name_fr,
-                    'nameAr' => $student->licenseCategory->name_ar,
-                ] : null,
                 'attempts' => [
                     'count' => $student->examAttempts->count(),
                     'average' => $graded->count() > 0 ? round($graded->avg('percentage'), 1) : null,
@@ -166,31 +161,57 @@ class StudentController extends Controller
 
     public function edit(Student $student): Response
     {
+        $student->load('user');
+
         return Inertia::render('Students/Form', [
-            'student' => [
-                'id' => $student->id,
-                'userId' => $student->user_id,
-                'name' => $student->user?->name,
-                'email' => $student->user?->email,
-                'studentNumber' => $student->student_number,
-                'licenseCategoryId' => $student->license_category_id,
-                'phone' => $student->phone,
-                'cin' => $student->cin,
-                'birthDate' => $student->birth_date?->toDateString(),
-                'birthplace' => $student->birthplace,
-                'gender' => $student->gender,
-                'enrollmentDate' => $student->enrollment_date?->toDateString(),
-                'status' => $student->status,
-                'notes' => $student->notes,
-                'photoUrl' => $this->photoUrl($student),
-            ],
-            'categories' => $this->categories(),
+            'student' => $this->card($student),
+            'categories' => $this->categories($student->license_category_id),
             'suggestedNumber' => null,
         ]);
     }
 
+    /**
+     * Shared by the file page and the edit form so both read the same picture of a trainee.
+     */
+    private function card(Student $student): array
+    {
+        return [
+            'id' => $student->id,
+            'userId' => $student->user_id,
+            'name' => $student->displayName(),
+            'firstName' => $student->first_name,
+            'lastName' => $student->last_name,
+            'firstNameAr' => $student->first_name_ar,
+            'lastNameAr' => $student->last_name_ar,
+            'email' => $student->user?->email,
+            'loginCode' => $student->user?->login_code,
+            'isActive' => (bool) $student->user?->is_active,
+            'studentNumber' => $student->student_number,
+            'licenseCategoryId' => $student->license_category_id,
+            'phone' => $student->phone,
+            'lessonsCount' => $student->lessons_count,
+            'lessonsTotal' => $student->lessons_total,
+            'cin' => $student->cin,
+            'birthDate' => $student->birth_date?->toDateString(),
+            'birthplace' => $student->birthplace,
+            'gender' => $student->gender,
+            'enrollmentDate' => $student->enrollment_date?->toDateString(),
+            'status' => $student->status,
+            'notes' => $student->notes,
+            'photoUrl' => $this->photoUrl($student),
+            'category' => $student->licenseCategory ? [
+                'id' => $student->licenseCategory->id,
+                'code' => $student->licenseCategory->code,
+                'nameFr' => $student->licenseCategory->name_fr,
+                'nameAr' => $student->licenseCategory->name_ar,
+            ] : null,
+        ];
+    }
+
     public function update(Request $request, Student $student): RedirectResponse
     {
+        $this->foldSquares($request);
+
         $data = $request->validate($this->rules($request, $student));
 
         if ($this->codeRequested($request) && $this->codeTaken($request, $student->user_id)) {
@@ -198,25 +219,60 @@ class StudentController extends Controller
         }
 
         DB::transaction(function () use ($request, $student, $data) {
+            $student->fill(Arr::only($data, self::PROFILE_FIELDS));
+
+            // Shrinking the bar below the sessions already recorded would leave counts
+            // the file page can no longer show, so they fall back to the new maximum.
+            if ($student->lessons_total !== null && $student->lessons_count > $student->lessons_total) {
+                $student->lessons_count = $student->lessons_total;
+            }
+
             if ($account = $student->user) {
                 $account->fill([
-                    'name' => $data['name'],
+                    'name' => $student->displayName(),
                     'email' => $data['email'] ?? null,
                 ]);
 
                 if ($this->codeRequested($request)) {
                     $account->login_code_hash = $this->codeHash($request);
+                    $account->login_code = $this->plainCode($request);
                 }
 
                 $account->save();
             }
 
-            $student->fill(Arr::only($data, self::PROFILE_FIELDS));
             $this->applyPhoto($request, $student);
             $student->save();
         });
 
         return redirect()->route('students.show', $student)->with('success', 'updated');
+    }
+
+    /**
+     * The file page's séance bar clicks this instead of going through the edit form, so a
+     * completed lesson can be recorded without reopening the whole file.
+     */
+    public function lessons(Request $request, Student $student): RedirectResponse
+    {
+        $maximum = $student->lessons_total ?? self::DEFAULT_SEANCES;
+
+        $data = $request->validate([
+            'lessons_count' => ['required', 'integer', "between:0,{$maximum}"],
+        ]);
+
+        $student->update(['lessons_count' => $data['lessons_count']]);
+
+        return back();
+    }
+
+    /**
+     * Squares take whatever the keyboard sends, and an Arabic keyboard sends ١٢.
+     */
+    private function foldSquares(Request $request): void
+    {
+        $value = Digits::latin(trim((string) $request->input('lessons_total', '')));
+
+        $request->merge(['lessons_total' => $value === '' ? null : $value]);
     }
 
     public function toggleActive(Request $request, Student $student): RedirectResponse
@@ -235,21 +291,27 @@ class StudentController extends Controller
 
     public function destroy(Student $student): RedirectResponse
     {
-        try {
-            DB::transaction(function () use ($student) {
-                $user = $student->user;
-                $photo = $student->photo_path;
+        DB::transaction(function () use ($student): void {
+            $user = $student->user;
+            $photo = $student->photo_path;
 
-                $student->delete();
-                $user?->delete();
+            // Every table pointing at this file restricts on delete, so the history goes first.
+            $attemptIds = $student->examAttempts()->pluck('id');
+            $answerIds = AttemptAnswer::query()->whereIn('attempt_id', $attemptIds)->pluck('id');
 
-                if ($photo) {
-                    Storage::disk('local')->delete($photo);
-                }
-            });
-        } catch (QueryException) {
-            return back()->withErrors(['students' => 'This file still has exam or appointment records. Suspend it instead.']);
-        }
+            AttemptAnswerOption::query()->whereIn('attempt_answer_id', $answerIds)->delete();
+            AttemptAnswer::query()->whereIn('attempt_id', $attemptIds)->delete();
+            $student->appointments()->delete();
+            $student->successRecords()->delete();
+            $student->examAttempts()->delete();
+
+            $student->delete();
+            $user?->delete();
+
+            if ($photo) {
+                Storage::disk('local')->delete($photo);
+            }
+        });
 
         return redirect()->route('students.index')->with('success', 'deleted');
     }
@@ -280,7 +342,8 @@ class StudentController extends Controller
         $access = $this->choice($request, 'access', ['active', 'inactive']);
 
         return Student::query()
-            ->with(['user:id,name,is_active,last_login_at,login_code_hash', 'licenseCategory:id,code,name_fr,name_ar'])
+            ->with(['user:id,name,is_active,last_login_at,login_code_hash,login_code,email', 'licenseCategory:id,code,name_fr,name_ar'])
+            ->withCount(['examAttempts', 'appointments', 'successRecords'])
             ->when($search !== '', function ($query) use ($search) {
                 $like = '%'.str_replace(['%', '_'], ['\%', '\_'], $search).'%';
 
@@ -288,7 +351,13 @@ class StudentController extends Controller
                     $inner->where('student_number', 'like', $like)
                         ->orWhere('cin', 'like', $like)
                         ->orWhere('phone', 'like', $like)
-                        ->orWhereHas('user', fn ($user) => $user->where('name', 'like', $like));
+                        ->orWhere('first_name', 'like', $like)
+                        ->orWhere('last_name', 'like', $like)
+                        ->orWhere('first_name_ar', 'like', $like)
+                        ->orWhere('last_name_ar', 'like', $like)
+                        ->orWhereHas('user', fn ($user) => $user
+                            ->where('name', 'like', $like)
+                            ->orWhere('login_code', 'like', $like));
                 });
             })
             ->when($status, fn ($query) => $query->where('status', $status))
@@ -306,10 +375,15 @@ class StudentController extends Controller
         return [
             'id' => $student->id,
             'userId' => $student->user_id,
-            'name' => $student->user?->name,
+            'name' => $student->displayName(),
+            'firstName' => $student->first_name,
+            'lastName' => $student->last_name,
+            'firstNameAr' => $student->first_name_ar,
+            'lastNameAr' => $student->last_name_ar,
+            'loginCode' => $student->user?->login_code,
             'studentNumber' => $student->student_number,
             'phone' => $student->phone,
-            'cin' => $student->cin,
+            'email' => $student->user?->email,
             'photoUrl' => $this->photoUrl($student),
             'enrollmentDate' => $student->enrollment_date?->toDateString(),
             'status' => $student->status,
@@ -322,20 +396,28 @@ class StudentController extends Controller
                 'nameFr' => $student->licenseCategory->name_fr,
                 'nameAr' => $student->licenseCategory->name_ar,
             ] : null,
+            'history' => [
+                'attempts' => (int) $student->exam_attempts_count,
+                'appointments' => (int) $student->appointments_count,
+                'records' => (int) $student->success_records_count,
+            ],
         ];
     }
 
     private function rules(Request $request, ?Student $student = null): array
     {
         return [
-            'name' => ['required', 'string', 'max:255'],
+            'first_name' => ['required', 'string', 'max:120'],
+            'last_name' => ['required', 'string', 'max:120'],
+            'first_name_ar' => ['nullable', 'string', 'max:120'],
+            'last_name_ar' => ['nullable', 'string', 'max:120'],
             'email' => [
                 'nullable', 'string', 'lowercase', 'email', 'max:255',
                 Rule::unique(User::class, 'email')->ignore($student?->user_id),
             ],
             'login_code' => [
                 $student === null ? 'required' : 'nullable',
-                'string', 'min:4', 'max:32',
+                'string', 'min:3', 'max:32',
             ],
             'student_number' => [
                 'required', 'string', 'max:30',
@@ -345,10 +427,11 @@ class StudentController extends Controller
             'enrollment_date' => ['required', 'date'],
             'status' => ['required', Rule::in(self::STATUSES)],
             'phone' => ['nullable', 'string', 'max:30'],
-            'cin' => ['nullable', 'string', 'max:20'],
+            'lessons_total' => ['nullable', 'integer', 'between:1,99'],
+            'cin' => ['required', 'string', 'max:20'],
             'birth_date' => ['nullable', 'date'],
             'birthplace' => ['nullable', 'string', 'max:120'],
-            'gender' => ['nullable', Rule::in(self::GENDERS)],
+            'gender' => ['required', Rule::in(self::GENDERS)],
             'notes' => ['nullable', 'string', 'max:2000'],
             'photo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
             'remove_photo' => ['boolean'],
@@ -364,6 +447,17 @@ class StudentController extends Controller
     {
         return $this->codeRequested($request)
             ? User::hashLoginCode((string) $request->input('login_code'))
+            : null;
+    }
+
+    /**
+     * Stored exactly as the hash helper normalises it, so what staff read back is what
+     * the trainee has to type.
+     */
+    private function plainCode(Request $request): ?string
+    {
+        return $this->codeRequested($request)
+            ? User::normalizeLoginCode((string) $request->input('login_code'))
             : null;
     }
 
@@ -418,10 +512,16 @@ class StudentController extends Controller
         return $student->photo_path === null ? null : route('students.photo', $student);
     }
 
-    private function categories(): array
+    /**
+     * A file keeps its category even when the category is switched off afterwards, so the
+     * edit form has to offer it too or saving would silently move the trainee elsewhere.
+     */
+    private function categories(?int $alsoId = null): array
     {
         return LicenseCategory::query()
-            ->where('is_active', true)
+            ->where(fn ($query) => $query
+                ->where('is_active', true)
+                ->when($alsoId, fn ($query, $id) => $query->orWhere('id', $id)))
             ->orderBy('code')
             ->get(['id', 'code', 'name_fr', 'name_ar'])
             ->map(fn (LicenseCategory $category) => [

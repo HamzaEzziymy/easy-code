@@ -1,5 +1,7 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import CodeCopy from '@/Components/CodeCopy';
 import DangerButton from '@/Components/DangerButton';
+import LessonSquares from '@/Components/LessonSquares';
 import Modal from '@/Components/Modal';
 import SecondaryButton from '@/Components/SecondaryButton';
 import StatusPill from '@/Components/StatusPill';
@@ -10,13 +12,14 @@ import { useTranslation } from 'react-i18next';
 import {
     FaArrowLeft,
     FaCalendarDay,
+    FaClipboardCheck,
     FaEdit,
     FaIdBadge,
     FaLockOpen,
     FaLock,
     FaStickyNote,
     FaTrophy,
-    FaTrash,
+    FaTrash
 } from 'react-icons/fa';
 
 function Card({ title, icon, children }) {
@@ -31,11 +34,14 @@ function Card({ title, icon, children }) {
     );
 }
 
-function Row({ label, value }) {
+function Row({ label, value, rtl, ltr }) {
     return (
         <div className="flex items-baseline justify-between gap-x-4">
-            <dt className="text-xs text-gray-600 dark:text-gray-400">{label}</dt>
-            <dd className="min-w-0 break-words text-end text-sm font-medium text-gray-800 dark:text-gray-100">
+            <dt className="shrink-0 text-xs text-gray-600 dark:text-gray-400">{label}</dt>
+            <dd
+                dir={rtl ? 'rtl' : ltr ? 'ltr' : undefined}
+                className="min-w-0 break-words text-end text-sm font-medium text-gray-800 dark:text-gray-100"
+            >
                 {value || <span className="text-gray-300 dark:text-gray-600">—</span>}
             </dd>
         </div>
@@ -50,8 +56,13 @@ export default function Show({ student }) {
     const language = i18n.language || 'en';
     const rtl = language.startsWith('ar');
 
-    const dateFormat = new Intl.DateTimeFormat(language, { dateStyle: 'medium' });
-    const dateTimeFormat = new Intl.DateTimeFormat(language, { dateStyle: 'medium', timeStyle: 'short' });
+    const dateFormat = new Intl.DateTimeFormat(language, {
+        dateStyle: 'medium'
+    });
+    const dateTimeFormat = new Intl.DateTimeFormat(language, {
+        dateStyle: 'medium',
+        timeStyle: 'short'
+    });
 
     const date = (value) => (value ? dateFormat.format(new Date(value)) : null);
     const dateTime = (value) => (value ? dateTimeFormat.format(new Date(value)) : null);
@@ -60,13 +71,19 @@ export default function Show({ student }) {
         ? `${rtl ? student.category.nameAr : student.category.nameFr} (${student.category.code})`
         : null;
 
+    const arabicName = `${student.firstNameAr ?? ''} ${student.lastNameAr ?? ''}`.trim();
+
     const toggleAccess = () => {
         setBusy(true);
-        router.patch(route('students.toggleActive', student.id), {}, {
-            preserveScroll: true,
-            only: ['student'],
-            onFinish: () => setBusy(false),
-        });
+        router.patch(
+            route('students.toggleActive', student.id),
+            {},
+            {
+                preserveScroll: true,
+                only: ['student'],
+                onFinish: () => setBusy(false)
+            }
+        );
     };
 
     const remove = () => {
@@ -75,7 +92,7 @@ export default function Show({ student }) {
             onFinish: () => {
                 setBusy(false);
                 setConfirmingDelete(false);
-            },
+            }
         });
     };
 
@@ -92,14 +109,9 @@ export default function Show({ student }) {
                         >
                             <FaArrowLeft className="rtl:-scale-x-100" size={14} />
                         </Link>
-                        <div>
-                            <h2 className="text-xl font-semibold leading-tight text-gray-800 dark:text-gray-200">
-                                {student.name}
-                            </h2>
-                            <p className="font-mono text-sm text-gray-600 dark:text-gray-300">
-                                {student.studentNumber}
-                            </p>
-                        </div>
+                        <h2 className="text-xl font-semibold leading-tight text-gray-800 dark:text-gray-200">
+                            {student.name}
+                        </h2>
                     </div>
                     <div className="flex items-center gap-x-2">
                         <button
@@ -109,7 +121,11 @@ export default function Show({ student }) {
                             className="inline-flex items-center gap-x-2 rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-600 transition-colors hover:border-[#007BFF] hover:text-[#007BFF] disabled:opacity-60 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200"
                         >
                             {student.isActive ? <FaLock size={13} /> : <FaLockOpen size={13} />}
-                            {t(student.isActive ? 'students.disableAccess' : 'students.enableAccess')}
+                            {t(
+                                student.isActive
+                                    ? 'students.disableAccess'
+                                    : 'students.enableAccess'
+                            )}
                         </button>
                         <Link href={route('students.edit', student.id)} className="inline-flex">
                             <SecondaryButton type="button">
@@ -117,7 +133,11 @@ export default function Show({ student }) {
                                 {t('students.edit')}
                             </SecondaryButton>
                         </Link>
-                        <DangerButton type="button" disabled={busy} onClick={() => setConfirmingDelete(true)}>
+                        <DangerButton
+                            type="button"
+                            disabled={busy}
+                            onClick={() => setConfirmingDelete(true)}
+                        >
                             <FaTrash className="me-2" size={13} />
                             {t('students.delete')}
                         </DangerButton>
@@ -130,9 +150,23 @@ export default function Show({ student }) {
             <div className="py-8">
                 <div className="mx-auto max-w-6xl space-y-5 px-4 sm:px-6 lg:px-8">
                     <div className="flex flex-wrap items-center gap-x-5 gap-y-4 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-                        <StudentAvatar photoUrl={student.photoUrl} name={student.name} variant="lg" />
+                        <StudentAvatar
+                            photoUrl={student.photoUrl}
+                            name={student.name}
+                            variant="lg"
+                        />
                         <div className="min-w-0 flex-1">
-                            <p className="text-2xl font-semibold text-gray-900 dark:text-gray-100">{student.name}</p>
+                            <p className="text-2xl font-semibold leading-tight text-gray-900 dark:text-gray-100">
+                                {student.name}
+                            </p>
+                            {arabicName && (
+                                <p
+                                    dir="rtl"
+                                    className="text-lg font-medium leading-tight text-gray-600 dark:text-gray-300"
+                                >
+                                    {arabicName}
+                                </p>
+                            )}
                             <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-2">
                                 <StatusPill
                                     status={student.status}
@@ -150,8 +184,16 @@ export default function Show({ student }) {
                                             : 'bg-red-50 text-red-700 dark:bg-red-500/15 dark:text-red-300'
                                     }`}
                                 >
-                                    {student.isActive ? <FaLockOpen size={11} /> : <FaLock size={11} />}
-                                    {t(student.isActive ? 'students.accessOpen' : 'students.accessClosed')}
+                                    {student.isActive ? (
+                                        <FaLockOpen size={11} />
+                                    ) : (
+                                        <FaLock size={11} />
+                                    )}
+                                    {t(
+                                        student.isActive
+                                            ? 'students.accessOpen'
+                                            : 'students.accessClosed'
+                                    )}
                                 </span>
                             </div>
                             <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
@@ -161,54 +203,80 @@ export default function Show({ student }) {
                                 </span>
                             </p>
                         </div>
-                        <div className="grid grid-cols-3 gap-x-6 text-center">
-                            {[
-                                [student.attempts.count, t('students.attempts')],
-                                [
-                                    student.attempts.average === null
-                                        ? '—'
-                                        : `${student.attempts.average}%`,
-                                    t('students.averageScore'),
-                                ],
-                                [student.successRecords.length, t('students.successShort')],
-                            ].map(([value, label], index) => (
-                                <div key={index}>
-                                    <p className="text-xl font-semibold text-gray-900 dark:text-gray-100">{value}</p>
-                                    <p className="text-[11px] font-medium uppercase tracking-wide text-gray-600 dark:text-gray-400">
-                                        {label}
-                                    </p>
-                                </div>
-                            ))}
-                        </div>
                     </div>
 
                     <div className="grid gap-5 lg:grid-cols-2">
                         <Card title={t('students.identity')} icon={<FaIdBadge size={14} />}>
-                            <Row label={t('common.name')} value={student.name} />
-                            <Row label={t('students.cin')} value={student.cin} />
-                            <Row label={t('students.birthDate')} value={date(student.birthDate)} />
-                            <Row label={t('students.birthplace')} value={student.birthplace} />
+                            <Row label={t('students.firstName')} value={student.firstName} />
+                            <Row label={t('students.lastName')} value={student.lastName} />
+                            <Row
+                                label={t('students.firstNameAr')}
+                                value={student.firstNameAr}
+                                rtl
+                            />
+                            <Row label={t('students.lastNameAr')} value={student.lastNameAr} rtl />
                             <Row
                                 label={t('students.gender')}
                                 value={student.gender ? t(`enums.gender.${student.gender}`) : null}
                             />
+                            <Row label={t('students.birthDate')} value={date(student.birthDate)} />
+                            <Row label={t('students.birthplace')} value={student.birthplace} />
+                            <Row label={t('students.cin')} value={student.cin} ltr />
                         </Card>
 
                         <Card title={t('students.registration')} icon={<FaCalendarDay size={14} />}>
-                            <Row label={t('students.studentNumber')} value={student.studentNumber} />
+                            <Row
+                                label={t('students.studentNumber')}
+                                value={student.studentNumber}
+                                ltr
+                            />
                             <Row label={t('students.category')} value={categoryName} />
-                            <Row label={t('students.entryDate')} value={date(student.enrollmentDate)} />
-                            <Row label={t('students.fileStatus')} value={t(`enums.studentStatus.${student.status}`)} />
-                            <Row label={t('students.phone')} value={student.phone} />
+                            <Row
+                                label={t('students.entryDate')}
+                                value={date(student.enrollmentDate)}
+                            />
+                            <Row
+                                label={t('students.fileStatus')}
+                                value={t(`enums.studentStatus.${student.status}`)}
+                            />
+                            <Row label={t('students.phone')} value={student.phone} ltr />
                         </Card>
                     </div>
 
-                    <Card
-                        title={t('students.account')}
-                        icon={<FaLock size={14} />}
-                    >
-                        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                            <Row label={t('students.loginCode')} value={student.hasLoginCode ? t('students.codeIssued') : t('students.noCode')} />
+                    <Card title={t('students.lessonsCount')} icon={<FaClipboardCheck size={14} />}>
+                        <dd className="pb-1">
+                            <LessonSquares
+                                value={student.lessonsCount ?? ''}
+                                squares={student.lessonsTotal ?? 30}
+                                onChange={(count) =>
+                                    router.patch(
+                                        route('students.lessons', student.id),
+                                        { lessons_count: count },
+                                        {
+                                            preserveScroll: true,
+                                            only: ['student']
+                                        }
+                                    )
+                                }
+                            />
+                        </dd>
+                    </Card>
+
+                    <Card title={t('students.account')} icon={<FaLock size={14} />}>
+                        <div className="flex flex-wrap items-center justify-between gap-x-3 rounded-xl border border-gray-200 bg-gray-50 px-3.5 py-3 dark:border-gray-700 dark:bg-gray-900/40">
+                            <span className="text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">
+                                {t('students.loginCode')}
+                            </span>
+                            {student.loginCode ? (
+                                <CodeCopy code={student.loginCode} />
+                            ) : (
+                                <span className="text-sm text-gray-600 dark:text-gray-400">
+                                    {t('students.codeNotStored')}
+                                </span>
+                            )}
+                        </div>
+
+                        <div className="grid gap-3 sm:grid-cols-3">
                             <Row label={t('common.email')} value={student.email} />
                             <Row
                                 label={t('students.lastSignIn')}
@@ -221,7 +289,9 @@ export default function Show({ student }) {
                     <Card title={t('students.notes')} icon={<FaStickyNote size={14} />}>
                         <p className="whitespace-pre-line text-sm text-gray-700 dark:text-gray-200">
                             {student.notes || (
-                                <span className="text-gray-600 dark:text-gray-400">{t('students.noNotes')}</span>
+                                <span className="text-gray-600 dark:text-gray-400">
+                                    {t('students.noNotes')}
+                                </span>
                             )}
                         </p>
                     </Card>
@@ -245,13 +315,23 @@ export default function Show({ student }) {
                                             <p className="truncate text-xs text-gray-600 dark:text-gray-300">
                                                 {dateTime(appointment.scheduledAt)}
                                                 {appointment.type === 'exam' &&
-                                                    (rtl ? appointment.examTitleAr : appointment.examTitleFr) &&
+                                                    (rtl
+                                                        ? appointment.examTitleAr
+                                                        : appointment.examTitleFr) &&
                                                     ` · ${rtl ? appointment.examTitleAr : appointment.examTitleFr}`}
                                             </p>
                                         </div>
                                         <StatusPill
-                                            status={appointment.status === 'completed' ? 'passed' : appointment.status === 'cancelled' ? 'cancelled' : 'scheduled'}
-                                            label={t(`enums.appointmentStatus.${appointment.status}`)}
+                                            status={
+                                                appointment.status === 'completed'
+                                                    ? 'passed'
+                                                    : appointment.status === 'cancelled'
+                                                      ? 'cancelled'
+                                                      : 'scheduled'
+                                            }
+                                            label={t(
+                                                `enums.appointmentStatus.${appointment.status}`
+                                            )}
                                         />
                                     </div>
                                 ))
@@ -260,7 +340,9 @@ export default function Show({ student }) {
 
                         <Card title={t('students.successRecords')} icon={<FaTrophy size={14} />}>
                             {student.successRecords.length === 0 ? (
-                                <p className="text-sm text-gray-600 dark:text-gray-400">{t('students.noRecords')}</p>
+                                <p className="text-sm text-gray-600 dark:text-gray-400">
+                                    {t('students.noRecords')}
+                                </p>
                             ) : (
                                 student.successRecords.map((record) => (
                                     <div
@@ -276,7 +358,10 @@ export default function Show({ student }) {
                                                 {dateTime(record.achievedAt)}
                                             </p>
                                         </div>
-                                        <StatusPill status="passed" label={t('students.recorded')} />
+                                        <StatusPill
+                                            status="passed"
+                                            label={t('students.recorded')}
+                                        />
                                     </div>
                                 ))
                             )}

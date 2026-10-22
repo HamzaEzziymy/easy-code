@@ -132,10 +132,17 @@ export default function Index({ students, filters, stats, categories }) {
         });
     };
 
+    const historyRows = [
+        { label: t('students.attempts'), value: deleting?.history?.attempts ?? 0 },
+        { label: t('students.appointments'), value: deleting?.history?.appointments ?? 0 },
+        { label: t('students.successRecords'), value: deleting?.history?.records ?? 0 },
+    ].filter((row) => row.value > 0);
+
     const dateFormat = new Intl.DateTimeFormat(i18n.language, { dateStyle: 'medium' });
 
     const columns = [
-        { key: 'student_number', label: t('students.pupil'), sortable: true },
+        { key: 'pupil', label: t('students.pupil') },
+        { key: 'login_code', label: t('students.loginCode') },
         { key: 'category', label: t('students.category') },
         { key: 'contact', label: t('students.contact') },
         { key: 'enrollment_date', label: t('students.entryDate'), sortable: true },
@@ -259,7 +266,7 @@ export default function Index({ students, filters, stats, categories }) {
                         </div>
 
                         <div className="-mx-4 overflow-x-auto px-4">
-                            <table className="w-full min-w-[880px] border-separate border-spacing-0 text-start">
+                            <table className="w-full min-w-[1020px] border-separate border-spacing-0 text-start">
                                 <thead>
                                     <tr>
                                         {columns.map((column) => (
@@ -310,11 +317,24 @@ export default function Index({ students, filters, stats, categories }) {
                                                         >
                                                             {student.name}
                                                         </Link>
-                                                        <p className="truncate font-mono text-xs text-gray-600 dark:text-gray-300">
-                                                            {student.studentNumber}
-                                                        </p>
+                                                        {`${student.firstNameAr ?? ''} ${student.lastNameAr ?? ''}`.trim() && (
+                                                            <p
+                                                                dir="rtl"
+                                                                className="truncate text-xs text-gray-600 dark:text-gray-400"
+                                                            >
+                                                                {`${student.firstNameAr ?? ''} ${student.lastNameAr ?? ''}`.trim()}
+                                                            </p>
+                                                        )}
                                                     </div>
                                                 </div>
+                                            </td>
+                                            <td className="border-b border-gray-50 py-3 pe-3 align-middle dark:border-gray-700">
+                                                <span
+                                                    dir="ltr"
+                                                    className="font-mono text-xs font-semibold text-gray-700 dark:text-gray-200"
+                                                >
+                                                    {student.loginCode ?? '—'}
+                                                </span>
                                             </td>
                                             <td className="border-b border-gray-50 py-3 pe-3 align-middle text-sm text-gray-600 dark:border-gray-700 dark:text-gray-300">
                                                 {student.category ? (
@@ -337,8 +357,8 @@ export default function Index({ students, filters, stats, categories }) {
                                                     <span className="font-mono text-xs" dir="ltr">
                                                         {student.phone || '—'}
                                                     </span>
-                                                    <span className="truncate text-xs text-gray-600 dark:text-gray-400">
-                                                        {student.cin ? `CIN ${student.cin}` : t('students.noCin')}
+                                                    <span className="truncate text-xs text-gray-600 dark:text-gray-400" dir="ltr">
+                                                        {student.email || t('students.noEmail')}
                                                     </span>
                                                 </div>
                                             </td>
@@ -456,6 +476,20 @@ export default function Index({ students, filters, stats, categories }) {
                     <p className="text-sm text-gray-600 dark:text-gray-300">
                         {t('students.deleteHelp', { name: deleting?.name })}
                     </p>
+                    {historyRows.length > 0 && (
+                        <div className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 dark:border-amber-400/30 dark:bg-amber-500/15">
+                            <p className="text-sm font-semibold text-amber-900 dark:text-amber-100">
+                                {t('students.deleteAlsoRemoves')}
+                            </p>
+                            <ul className="mt-1 space-y-0.5 text-sm text-amber-900 dark:text-amber-100">
+                                {historyRows.map((row) => (
+                                    <li key={row.label}>
+                                        <span className="font-semibold tabular-nums">{row.value}</span> {row.label}
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    )}
                     <div className="flex justify-end gap-x-3">
                         <SecondaryButton onClick={() => setDeleting(null)}>{t('common.cancel')}</SecondaryButton>
                         <DangerButton disabled={busyId === deleting?.id} onClick={confirmDelete}>

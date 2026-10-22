@@ -48,6 +48,7 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::get('/students/{student}/edit', [StudentController::class, 'edit'])->name('students.edit');
     Route::patch('/students/{student}', [StudentController::class, 'update'])->name('students.update');
     Route::patch('/students/{student}/active', [StudentController::class, 'toggleActive'])->name('students.toggleActive');
+    Route::patch('/students/{student}/lessons', [StudentController::class, 'lessons'])->name('students.lessons');
     Route::delete('/students/{student}', [StudentController::class, 'destroy'])->name('students.destroy');
 
     Route::get('/categories', [CategoryController::class, 'index'])->name('categories.index');

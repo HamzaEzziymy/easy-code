@@ -12,12 +12,18 @@ class Student extends Model
         'user_id',
         'license_category_id',
         'student_number',
+        'first_name',
+        'last_name',
+        'first_name_ar',
+        'last_name_ar',
         'photo_path',
         'cin',
         'birth_date',
         'birthplace',
         'gender',
         'phone',
+        'lessons_count',
+        'lessons_total',
         'enrollment_date',
         'status',
         'notes',
@@ -28,7 +34,20 @@ class Student extends Model
         return [
             'enrollment_date' => 'date',
             'birth_date' => 'date',
+            'lessons_count' => 'integer',
+            'lessons_total' => 'integer',
         ];
+    }
+
+    /**
+     * Mirrored onto the account name so the sign-in screens, avatars and the user list
+     * keep working; the file itself stays the source of truth.
+     */
+    public function displayName(): string
+    {
+        $name = trim($this->first_name.' '.$this->last_name);
+
+        return $name !== '' ? $name : (string) $this->user?->name;
     }
 
     public function user(): BelongsTo
