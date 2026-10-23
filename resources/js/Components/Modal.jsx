@@ -42,7 +42,7 @@ export default function Modal({
                 as="div"
                 id="modal"
                 className={`fixed inset-0 z-50 flex transform items-center transition-all ${
-                    fullHeight ? 'overflow-hidden' : 'overflow-y-auto px-4 py-6 sm:px-0'
+                    fullHeight ? 'overflow-hidden p-4 sm:p-6 lg:p-8' : 'overflow-y-auto px-4 py-6 sm:px-0'
                 }`}
                 onClose={close}
             >
@@ -54,7 +54,13 @@ export default function Modal({
                     leaveFrom="opacity-100"
                     leaveTo="opacity-0"
                 >
-                    <div className="absolute inset-0 bg-gray-500/75 dark:bg-gray-900/75" />
+                    <div
+                        className={`absolute inset-0 ${
+                            fullHeight
+                                ? 'bg-gray-900/45 backdrop-blur-[1px] dark:bg-gray-950/60'
+                                : 'bg-gray-500/75 dark:bg-gray-900/75'
+                        }`}
+                    />
                 </TransitionChild>
 
                 <TransitionChild
@@ -68,7 +74,7 @@ export default function Modal({
                     <DialogPanel
                         className={`transform bg-white shadow-xl transition-all dark:bg-gray-800 ${
                             fullHeight
-                                ? 'flex h-[100dvh] w-full flex-col overflow-hidden'
+                                ? 'flex h-[80dvh] max-h-[calc(100dvh_-_2rem)] w-full flex-col overflow-hidden rounded-2xl sm:mx-auto sm:max-h-[calc(100dvh_-_3rem)] sm:max-w-[70%] lg:max-h-[calc(100dvh_-_4rem)]'
                                 : `mb-6 overflow-hidden rounded-lg sm:mx-auto sm:w-full ${maxWidthClass}`
                         }`}
                     >
