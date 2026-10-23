@@ -28,6 +28,12 @@ class StudentController extends Controller
     private const GENDERS = ['male', 'female'];
 
     /**
+     * The two languages a theory exam exists in — every exam and question carries a French and an
+     * Arabic text — so a trainee's file names the one they sit it in.
+     */
+    private const EXAM_LANGUAGES = ['ar', 'fr'];
+
+    /**
      * Squares a file's bar gets, so sessions it accepts, when staff never entered a number.
      */
     private const DEFAULT_SEANCES = 30;
@@ -35,6 +41,7 @@ class StudentController extends Controller
     private const PROFILE_FIELDS = [
         'student_number',
         'license_category_id',
+        'exam_language',
         'first_name',
         'last_name',
         'first_name_ar',
@@ -188,6 +195,7 @@ class StudentController extends Controller
             'isActive' => (bool) $student->user?->is_active,
             'studentNumber' => $student->student_number,
             'licenseCategoryId' => $student->license_category_id,
+            'examLanguage' => $student->exam_language,
             'phone' => $student->phone,
             'lessonsCount' => $student->lessons_count,
             'lessonsTotal' => $student->lessons_total,
@@ -382,6 +390,7 @@ class StudentController extends Controller
             'lastNameAr' => $student->last_name_ar,
             'loginCode' => $student->user?->login_code,
             'studentNumber' => $student->student_number,
+            'examLanguage' => $student->exam_language,
             'phone' => $student->phone,
             'email' => $student->user?->email,
             'photoUrl' => $this->photoUrl($student),
@@ -424,6 +433,7 @@ class StudentController extends Controller
                 Rule::unique('students', 'student_number')->ignore($student?->id),
             ],
             'license_category_id' => ['required', 'integer', Rule::exists('license_categories', 'id')],
+            'exam_language' => ['nullable', Rule::in(self::EXAM_LANGUAGES)],
             'enrollment_date' => ['required', 'date'],
             'status' => ['required', Rule::in(self::STATUSES)],
             'phone' => ['nullable', 'string', 'max:30'],

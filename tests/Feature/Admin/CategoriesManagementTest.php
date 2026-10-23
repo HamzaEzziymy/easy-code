@@ -75,7 +75,6 @@ class CategoriesManagementTest extends TestCase
                 ->where('categories.0.code', 'B')
                 ->where('categories.0.studentsCount', 1)
                 ->where('categories.0.examsCount', 0)
-                ->where('categories.0.questionsCount', 0)
             );
     }
 

@@ -1,9 +1,8 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import CategoryForm from './CategoryForm';
-import DangerButton from '@/Components/DangerButton';
 import Modal from '@/Components/Modal';
 import PrimaryButton from '@/Components/PrimaryButton';
-import SecondaryButton from '@/Components/SecondaryButton';
+import TypeToConfirm from '@/Components/TypeToConfirm';
 import { Head, router, usePage } from '@inertiajs/react';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -15,13 +14,18 @@ import {
     FaTrash,
     FaUser,
 } from 'react-icons/fa';
-import { FaCircleQuestion, FaFileLines } from 'react-icons/fa6';
+import { FaFileLines } from 'react-icons/fa6';
 
 const panel = 'rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800';
 const cell = 'border-b border-gray-100 py-4 pe-4 align-middle dark:border-gray-700';
 
+/** Staff fill the French fields first, so a column falls back to the other language when the one the UI wants is blank. */
+const inLanguage = (rtl, arabic, french) => (rtl ? arabic || french : french || arabic);
+const otherLanguage = (rtl, arabic, french) => (rtl ? french : arabic);
+
 export default function Index({ categories, filters, stats }) {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
+    const rtl = (i18n.language ?? '').startsWith('ar');
     const flash = usePage().props.flash;
     const errors = usePage().props.errors;
 
@@ -200,7 +204,7 @@ export default function Index({ categories, filters, stats }) {
                         </div>
 
                         <div className="overflow-x-auto">
-                            <table className="w-full min-w-[840px] border-separate border-spacing-0 text-start">
+                            <table className="w-full min-w-[920px] border-separate border-spacing-0 text-start">
                                 <thead>
                                     <tr className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
                                         <th className={`${cell} ps-1 text-start`}>{t('categories.code')}</th>
@@ -210,6 +214,7 @@ export default function Index({ categories, filters, stats }) {
                                         </th>
                                         <th className={`${cell} text-start`}>{t('categories.usage')}</th>
                                         <th className={`${cell} text-end`}>{t('categories.status')}</th>
+                                        <th className={`${cell} text-end`}>{t('categories.actions')}</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -237,24 +242,32 @@ export default function Index({ categories, filters, stats }) {
                                                 </div>
                                             </td>
                                             <td className={cell}>
-                                                <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                                                    {category.nameFr}
+                                                <p
+                                                    dir={rtl ? 'rtl' : 'ltr'}
+                                                    className="text-sm font-semibold text-gray-900 dark:text-gray-100"
+                                                >
+                                                    {inLanguage(rtl, category.nameAr, category.nameFr)}
                                                 </p>
-                                                <p className="text-sm text-gray-600 dark:text-gray-300" dir="rtl">
-                                                    {category.nameAr}
-                                                </p>
+                                                {otherLanguage(rtl, category.nameAr, category.nameFr) && (
+                                                    <p
+                                                        dir={rtl ? 'ltr' : 'rtl'}
+                                                        className="text-sm text-gray-600 dark:text-gray-300"
+                                                    >
+                                                        {otherLanguage(rtl, category.nameAr, category.nameFr)}
+                                                    </p>
+                                                )}
                                             </td>
                                             <td className={`${cell} hidden max-w-xs lg:table-cell`}>
                                                 <p
+                                                    dir={rtl ? 'rtl' : 'ltr'}
                                                     className={`line-clamp-2 text-xs leading-relaxed ${
                                                         category.conditionFr || category.conditionAr
                                                             ? 'text-gray-600 dark:text-gray-400'
                                                             : 'italic text-gray-400 dark:text-gray-500'
                                                     }`}
-                                                    title={category.conditionFr || category.conditionAr || ''}
+                                                    title={inLanguage(rtl, category.conditionAr, category.conditionFr)}
                                                 >
-                                                    {category.conditionFr ||
-                                                        category.conditionAr ||
+                                                    {inLanguage(rtl, category.conditionAr, category.conditionFr) ||
                                                         t('categories.noCondition')}
                                                 </p>
                                             </td>
@@ -270,11 +283,6 @@ export default function Index({ categories, filters, stats }) {
                                                             icon: FaFileLines,
                                                             value: category.examsCount,
                                                             label: t('categories.exams'),
-                                                        },
-                                                        {
-                                                            icon: FaCircleQuestion,
-                                                            value: category.questionsCount,
-                                                            label: t('categories.questions'),
                                                         },
                                                     ].map(({ icon: Icon, value, label }) => (
                                                         <span
@@ -323,27 +331,29 @@ export default function Index({ categories, filters, stats }) {
                                                             }`}
                                                         />
                                                     </button>
-                                                    <span className="flex items-center gap-x-1">
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => openEdit(category)}
-                                                            title={t('categories.edit')}
-                                                            aria-label={t('categories.edit')}
-                                                            className="rounded-lg p-2 text-gray-500 transition-colors hover:bg-[#007BFF]/10 hover:text-[#007BFF] dark:text-gray-300 dark:hover:bg-[#00AEEF]/15 dark:hover:text-[#00AEEF]"
-                                                        >
-                                                            <FaEdit size={14} />
-                                                        </button>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => setDeleting(category)}
-                                                            title={t('categories.delete')}
-                                                            aria-label={t('categories.delete')}
-                                                            className="rounded-lg p-2 text-gray-500 transition-colors hover:bg-red-50 hover:text-red-600 dark:text-gray-300 dark:hover:bg-red-500/15 dark:hover:text-red-300"
-                                                        >
-                                                            <FaTrash size={14} />
-                                                        </button>
-                                                    </span>
                                                 </div>
+                                            </td>
+                                            <td className={`${cell} text-end`}>
+                                                <span className="flex items-center justify-end gap-x-1">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => openEdit(category)}
+                                                        title={t('categories.edit')}
+                                                        aria-label={t('categories.edit')}
+                                                        className="rounded-lg p-2 text-gray-500 transition-colors hover:bg-[#007BFF]/10 hover:text-[#007BFF] dark:text-gray-300 dark:hover:bg-[#00AEEF]/15 dark:hover:text-[#00AEEF]"
+                                                    >
+                                                        <FaEdit size={14} />
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setDeleting(category)}
+                                                        title={t('categories.delete')}
+                                                        aria-label={t('categories.delete')}
+                                                        className="rounded-lg p-2 text-gray-500 transition-colors hover:bg-red-50 hover:text-red-600 dark:text-gray-300 dark:hover:bg-red-500/15 dark:hover:text-red-300"
+                                                    >
+                                                        <FaTrash size={14} />
+                                                    </button>
+                                                </span>
                                             </td>
                                         </tr>
                                     ))}
@@ -389,12 +399,15 @@ export default function Index({ categories, filters, stats }) {
                     <p className="text-sm text-gray-700 dark:text-gray-300">
                         {t('categories.deleteHelp', { code: deleting?.code })}
                     </p>
-                    <div className="flex justify-end gap-x-3">
-                        <SecondaryButton onClick={() => setDeleting(null)}>{t('common.cancel')}</SecondaryButton>
-                        <DangerButton disabled={busyId === deleting?.id} onClick={confirmDelete}>
-                            {t('common.confirm')}
-                        </DangerButton>
-                    </div>
+                    <TypeToConfirm
+                        open={deleting !== null}
+                        expected={deleting?.code}
+                        label={t('categories.deleteConfirmCode')}
+                        placeholder={t('categories.code')}
+                        onCancel={() => setDeleting(null)}
+                        onConfirm={confirmDelete}
+                        busy={busyId === deleting?.id}
+                    />
                 </div>
             </Modal>
         </AuthenticatedLayout>

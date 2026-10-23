@@ -2,6 +2,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import CodeCopy from '@/Components/CodeCopy';
 import DigitSquares from '@/Components/DigitSquares';
 import InputError from '@/Components/InputError';
+import { EXAM_LANGUAGES } from '@/Components/LanguageChip';
 import PrimaryButton from '@/Components/PrimaryButton';
 import SecondaryButton from '@/Components/SecondaryButton';
 import StudentAvatar from '@/Components/StudentAvatar';
@@ -84,6 +85,7 @@ export default function Form({ student, categories, suggestedNumber }) {
                   student_number: student.studentNumber ?? '',
                   lessons_total: String(student.lessonsTotal ?? ''),
                   license_category_id: student.licenseCategoryId ?? '',
+                  exam_language: student.examLanguage ?? '',
                   enrollment_date: student.enrollmentDate ?? '',
                   status: student.status ?? 'active',
                   gender: student.gender ?? '',
@@ -105,6 +107,7 @@ export default function Form({ student, categories, suggestedNumber }) {
                   student_number: suggestedNumber ?? '',
                   lessons_total: '',
                   license_category_id: categories[0]?.id ?? '',
+                  exam_language: '',
                   enrollment_date: new Date().toISOString().slice(0, 10),
                   status: 'active',
                   gender: '',
@@ -516,6 +519,29 @@ export default function Form({ student, categories, suggestedNumber }) {
                                         {categories.map((category) => (
                                             <option key={category.id} value={category.id}>
                                                 {categoryLabel(category)}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </Field>
+
+                                <Field
+                                    label={t('students.examLanguage')}
+                                    htmlFor="student-exam-language"
+                                    hint={t('students.examLanguageHelp')}
+                                    error={form.errors.exam_language}
+                                >
+                                    <select
+                                        id="student-exam-language"
+                                        className={fieldClass}
+                                        value={form.data.exam_language}
+                                        onChange={(event) =>
+                                            form.setData('exam_language', event.target.value)
+                                        }
+                                    >
+                                        <option value="">{t('students.examLanguageNone')}</option>
+                                        {EXAM_LANGUAGES.map((code) => (
+                                            <option key={code} value={code}>
+                                                {t(`students.examLang.${code}`)}
                                             </option>
                                         ))}
                                     </select>

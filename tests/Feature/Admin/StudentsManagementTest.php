@@ -624,6 +624,54 @@ class StudentsManagementTest extends TestCase
             );
     }
 
+    public function test_the_language_a_trainee_sits_the_exam_in_is_recorded_on_the_file(): void
+    {
+        $actor = $this->admin();
+        $student = $this->makeStudent([
+            'student_number' => 'EC-2026-7011',
+            'login_code' => 'EC-2026-7011',
+            'exam_language' => 'ar',
+        ]);
+
+        $this->assertSame('ar', $student->refresh()->exam_language);
+
+        $this->actingAs($actor)->get('/students?search=EC-2026-7011')
+            ->assertInertia(fn ($page) => $page->where('students.data.0.examLanguage', 'ar'));
+
+        $this->actingAs($actor)->get("/students/{$student->id}")
+            ->assertInertia(fn ($page) => $page->where('student.examLanguage', 'ar'));
+    }
+
+    public function test_the_exam_language_starts_empty_and_can_be_cleared_again(): void
+    {
+        $actor = $this->admin();
+        $student = $this->makeStudent();
+
+        $this->assertNull($student->refresh()->exam_language);
+
+        $this->actingAs($actor)->patch("/students/{$student->id}", $this->payload([
+            'exam_language' => 'fr',
+        ]));
+        $this->assertSame('fr', $student->refresh()->exam_language);
+
+        $this->actingAs($actor)->patch("/students/{$student->id}", $this->payload([
+            'exam_language' => '',
+        ]));
+        $this->assertNull($student->refresh()->exam_language);
+    }
+
+    public function test_an_exam_language_the_theory_exam_has_no_text_in_is_refused(): void
+    {
+        $actor = $this->admin();
+        $student = $this->makeStudent(['exam_language' => 'ar']);
+
+        $this->actingAs($actor)->patch("/students/{$student->id}", $this->payload([
+            'exam_language' => 'es',
+        ]))->assertSessionHasErrors('exam_language');
+
+        $this->assertSame('ar', $student->refresh()->exam_language);
+    }
+
     public function test_a_blocked_account_is_hidden_by_the_access_filter(): void
     {
         $actor = $this->admin();

@@ -89,7 +89,7 @@ class CategoryController extends Controller
         $status = $this->choice($request, 'status', ['active', 'inactive']);
 
         return LicenseCategory::query()
-            ->withCount(['students', 'exams', 'questions'])
+            ->withCount(['students', 'exams'])
             ->when($search !== '', function ($query) use ($search) {
                 $like = '%'.str_replace(['%', '_'], ['\%', '\_'], $search).'%';
 
@@ -151,7 +151,6 @@ class CategoryController extends Controller
             'isActive' => $category->is_active,
             'studentsCount' => $category->students_count,
             'examsCount' => $category->exams_count,
-            'questionsCount' => $category->questions_count,
         ];
     }
 

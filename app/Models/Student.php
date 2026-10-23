@@ -11,6 +11,7 @@ class Student extends Model
     protected $fillable = [
         'user_id',
         'license_category_id',
+        'exam_language',
         'student_number',
         'first_name',
         'last_name',

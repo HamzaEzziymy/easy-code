@@ -1,11 +1,13 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import CodeCopy from '@/Components/CodeCopy';
 import DangerButton from '@/Components/DangerButton';
+import LanguageChip from '@/Components/LanguageChip';
 import LessonSquares from '@/Components/LessonSquares';
 import Modal from '@/Components/Modal';
 import SecondaryButton from '@/Components/SecondaryButton';
 import StatusPill from '@/Components/StatusPill';
 import StudentAvatar from '@/Components/StudentAvatar';
+import TypeToConfirm from '@/Components/TypeToConfirm';
 import { Head, Link, router } from '@inertiajs/react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -72,6 +74,8 @@ export default function Show({ student }) {
         : null;
 
     const arabicName = `${student.firstNameAr ?? ''} ${student.lastNameAr ?? ''}`.trim();
+
+    const examLanguage = student.examLanguage ? <LanguageChip code={student.examLanguage} /> : null;
 
     const toggleAccess = () => {
         setBusy(true);
@@ -231,6 +235,7 @@ export default function Show({ student }) {
                                 ltr
                             />
                             <Row label={t('students.category')} value={categoryName} />
+                            <Row label={t('students.examLanguage')} value={examLanguage} />
                             <Row
                                 label={t('students.entryDate')}
                                 value={date(student.enrollmentDate)}
@@ -263,17 +268,18 @@ export default function Show({ student }) {
                     </Card>
 
                     <Card title={t('students.account')} icon={<FaLock size={14} />}>
-                        <div className="flex flex-wrap items-center justify-between gap-x-3 rounded-xl border border-gray-200 bg-gray-50 px-3.5 py-3 dark:border-gray-700 dark:bg-gray-900/40">
-                            <span className="text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">
-                                {t('students.loginCode')}
-                            </span>
-                            {student.loginCode ? (
-                                <CodeCopy code={student.loginCode} />
-                            ) : (
-                                <span className="text-sm text-gray-600 dark:text-gray-400">
-                                    {t('students.codeNotStored')}
-                                </span>
-                            )}
+                        <div className="flex flex-wrap items-center justify-between gap-x-5 gap-y-3 rounded-xl bg-[#007BFF]/5 px-4 py-3.5 dark:bg-[#00AEEF]/10">
+                            <div className="min-w-0">
+                                <p className="text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">
+                                    {t('students.loginCode')}
+                                </p>
+                                <p className="mt-1 text-xs text-gray-600 dark:text-gray-400">
+                                    {student.loginCode
+                                        ? t('students.loginCodeNote')
+                                        : t('students.codeNotStored')}
+                                </p>
+                            </div>
+                            {student.loginCode && <CodeCopy code={student.loginCode} large />}
                         </div>
 
                         <div className="grid gap-3 sm:grid-cols-3">
@@ -378,14 +384,15 @@ export default function Show({ student }) {
                     <p className="text-sm text-gray-600 dark:text-gray-300">
                         {t('students.deleteHelp', { name: student.name })}
                     </p>
-                    <div className="flex justify-end gap-x-3">
-                        <SecondaryButton onClick={() => setConfirmingDelete(false)}>
-                            {t('common.cancel')}
-                        </SecondaryButton>
-                        <DangerButton disabled={busy} onClick={remove}>
-                            {t('common.confirm')}
-                        </DangerButton>
-                    </div>
+                    <TypeToConfirm
+                        open={confirmingDelete}
+                        expected={student.loginCode || student.studentNumber}
+                        label={t(student.loginCode ? 'students.deleteConfirmCode' : 'students.deleteConfirmNumber')}
+                        placeholder={t(student.loginCode ? 'students.loginCode' : 'students.studentNumber')}
+                        onCancel={() => setConfirmingDelete(false)}
+                        onConfirm={remove}
+                        busy={busy}
+                    />
                 </div>
             </Modal>
         </AuthenticatedLayout>

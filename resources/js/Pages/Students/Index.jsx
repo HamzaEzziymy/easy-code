@@ -1,10 +1,10 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import DangerButton from '@/Components/DangerButton';
+import LanguageChip from '@/Components/LanguageChip';
 import Modal from '@/Components/Modal';
 import PrimaryButton from '@/Components/PrimaryButton';
-import SecondaryButton from '@/Components/SecondaryButton';
 import StatusPill from '@/Components/StatusPill';
 import StudentAvatar from '@/Components/StudentAvatar';
+import TypeToConfirm from '@/Components/TypeToConfirm';
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -144,6 +144,7 @@ export default function Index({ students, filters, stats, categories }) {
         { key: 'pupil', label: t('students.pupil') },
         { key: 'login_code', label: t('students.loginCode') },
         { key: 'category', label: t('students.category') },
+        { key: 'exam_language', label: t('students.examLanguage') },
         { key: 'contact', label: t('students.contact') },
         { key: 'enrollment_date', label: t('students.entryDate'), sortable: true },
         { key: 'status', label: t('students.fileStatus'), sortable: true },
@@ -266,7 +267,7 @@ export default function Index({ students, filters, stats, categories }) {
                         </div>
 
                         <div className="-mx-4 overflow-x-auto px-4">
-                            <table className="w-full min-w-[1020px] border-separate border-spacing-0 text-start">
+                            <table className="w-full min-w-[1140px] border-separate border-spacing-0 text-start">
                                 <thead>
                                     <tr>
                                         {columns.map((column) => (
@@ -338,19 +339,18 @@ export default function Index({ students, filters, stats, categories }) {
                                             </td>
                                             <td className="border-b border-gray-50 py-3 pe-3 align-middle text-sm text-gray-600 dark:border-gray-700 dark:text-gray-300">
                                                 {student.category ? (
-                                                    <span className="inline-flex items-center gap-x-2">
-                                                        <span className="rounded-lg bg-gray-100 px-2 py-1 font-mono text-xs font-semibold text-gray-600 dark:bg-gray-700 dark:text-gray-200">
-                                                            {student.category.code}
-                                                        </span>
-                                                        <span className="truncate">
-                                                            {i18n.language?.startsWith('ar')
-                                                                ? student.category.nameAr
-                                                                : student.category.nameFr}
-                                                        </span>
+                                                    <span
+                                                        dir="ltr"
+                                                        className="inline-flex min-w-[2.75rem] items-center justify-center rounded-lg bg-[#007BFF]/10 px-2.5 py-1 text-xs font-bold uppercase tracking-wide text-[#007BFF] dark:bg-[#00AEEF]/15 dark:text-[#00AEEF]"
+                                                    >
+                                                        {student.category.code}
                                                     </span>
                                                 ) : (
                                                     <span className="text-gray-400">—</span>
                                                 )}
+                                            </td>
+                                            <td className="border-b border-gray-50 py-3 pe-3 align-middle dark:border-gray-700">
+                                                <LanguageChip code={student.examLanguage} />
                                             </td>
                                             <td className="border-b border-gray-50 py-3 pe-3 align-middle text-sm text-gray-600 dark:border-gray-700 dark:text-gray-300">
                                                 <div className="flex flex-col gap-y-0.5">
@@ -490,12 +490,15 @@ export default function Index({ students, filters, stats, categories }) {
                             </ul>
                         </div>
                     )}
-                    <div className="flex justify-end gap-x-3">
-                        <SecondaryButton onClick={() => setDeleting(null)}>{t('common.cancel')}</SecondaryButton>
-                        <DangerButton disabled={busyId === deleting?.id} onClick={confirmDelete}>
-                            {t('common.confirm')}
-                        </DangerButton>
-                    </div>
+                    <TypeToConfirm
+                        open={deleting !== null}
+                        expected={deleting?.loginCode || deleting?.studentNumber}
+                        label={t(deleting?.loginCode ? 'students.deleteConfirmCode' : 'students.deleteConfirmNumber')}
+                        placeholder={t(deleting?.loginCode ? 'students.loginCode' : 'students.studentNumber')}
+                        onCancel={() => setDeleting(null)}
+                        onConfirm={confirmDelete}
+                        busy={busyId === deleting?.id}
+                    />
                 </div>
             </Modal>
         </AuthenticatedLayout>
