@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\CategoryController;
+use App\Http\Controllers\Admin\QuestionController;
 use App\Http\Controllers\Admin\StudentController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\ProfileController;
@@ -57,6 +58,15 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::patch('/categories/{category}', [CategoryController::class, 'update'])->name('categories.update');
     Route::patch('/categories/{category}/active', [CategoryController::class, 'toggleActive'])->name('categories.toggleActive');
     Route::delete('/categories/{category}', [CategoryController::class, 'destroy'])->name('categories.destroy');
+
+    Route::get('/questions', [QuestionController::class, 'index'])->name('questions.index');
+    Route::get('/questions/create', [QuestionController::class, 'create'])->name('questions.create');
+    Route::post('/questions', [QuestionController::class, 'store'])->name('questions.store');
+    Route::get('/questions/{question}/edit', [QuestionController::class, 'edit'])->name('questions.edit');
+    Route::patch('/questions/{question}', [QuestionController::class, 'update'])->name('questions.update');
+    Route::patch('/questions/{question}/active', [QuestionController::class, 'toggleActive'])->name('questions.toggleActive');
+    Route::delete('/questions/{question}', [QuestionController::class, 'destroy'])->name('questions.destroy');
+    Route::get('/questions/{question}/media/{slot}', [QuestionController::class, 'media'])->name('questions.media');
 });
 
 require __DIR__.'/auth.php';

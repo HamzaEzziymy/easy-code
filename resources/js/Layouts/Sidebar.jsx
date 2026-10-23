@@ -1,7 +1,7 @@
 import React from 'react'
 import { Link } from '@inertiajs/react';
 import ApplicationLogo from '@/Components/ApplicationLogo';
-import {FaHome, FaLayerGroup, FaPaperclip, FaProjectDiagram, FaTasks, FaUser, FaUsers, FaUserGraduate } from 'react-icons/fa';
+import {FaHome, FaLayerGroup, FaPaperclip, FaProjectDiagram, FaQuestion, FaTasks, FaUser, FaUsers, FaUserGraduate } from 'react-icons/fa';
 import { IoDocumentsSharp } from "react-icons/io5";
 import { MdAccountTree } from "react-icons/md";
 import { useTranslation } from 'react-i18next';
@@ -22,6 +22,7 @@ function Sidebar({sidebarOpen, setSidebarOpen, mobileMenuOpen, setMobileMenuOpen
         { key: 'users', label: t('nav.users'),icon:<FaUsers size={20}/>, href: route('users.index'), current: route().current('users.*') },
         { key: 'students', label: t('nav.students'),icon:<FaUserGraduate size={20}/>, href: route('students.index'), current: route().current('students.*') },
         { key: 'categories', label: t('nav.categories'),icon:<FaLayerGroup size={20}/>, href: route('categories.index'), current: route().current('categories.*') },
+        { key: 'questions', label: t('nav.questions'),icon:<FaQuestion size={20}/>, href: route('questions.index'), current: route().current('questions.*') },
         { key: 'structure', label: t('nav.structure'),icon:<MdAccountTree size={20}/>, href: '#', current: false },
         { key: 'projects', label: t('nav.projects'),icon:<FaProjectDiagram size={20}/>, href: '#', current: false },
         { key: 'tasks', label: t('nav.tasks'),icon:<FaTasks size={20}/>, href: '#', current: false },

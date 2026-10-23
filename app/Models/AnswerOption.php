@@ -34,4 +34,9 @@ class AnswerOption extends Model
     {
         return $this->hasMany(OptionTranslation::class);
     }
+
+    public function textFor(string $locale): ?string
+    {
+        return $this->translations->firstWhere('locale', $locale)?->option_text;
+    }
 }

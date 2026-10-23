@@ -13,8 +13,11 @@ class Question extends Model
         'license_category_id',
         'created_by',
         'question_type',
-        'media_type',
-        'media_url',
+        'time_limit_seconds',
+        'image_ar',
+        'image_fr',
+        'audio_ar',
+        'audio_fr',
         'explanation_ar',
         'explanation_fr',
         'difficulty',
@@ -25,6 +28,7 @@ class Question extends Model
     {
         return [
             'difficulty' => 'integer',
+            'time_limit_seconds' => 'integer',
             'is_active' => 'boolean',
         ];
     }
@@ -58,5 +62,14 @@ class Question extends Model
     {
         return $this->belongsToMany(Exam::class, 'exam_questions')
             ->withPivot(['question_order', 'points']);
+    }
+
+    /**
+     * The bank holds one translation row per language, so a question with no Arabic text simply
+     * has no Arabic row rather than an empty one.
+     */
+    public function textFor(string $locale): ?string
+    {
+        return $this->translations->firstWhere('locale', $locale)?->question_text;
     }
 }
