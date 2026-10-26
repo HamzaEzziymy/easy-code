@@ -39,4 +39,10 @@ class AnswerOption extends Model
     {
         return $this->translations->firstWhere('locale', $locale)?->option_text;
     }
+
+    /** The short line typed in front of the choice, in the language the exam is sat in. */
+    public function prefixFor(string $locale): ?string
+    {
+        return $this->translations->firstWhere('locale', $locale)?->prefix;
+    }
 }

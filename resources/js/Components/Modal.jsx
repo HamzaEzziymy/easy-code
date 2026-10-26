@@ -74,7 +74,7 @@ export default function Modal({
                     <DialogPanel
                         className={`transform bg-white shadow-xl transition-all dark:bg-gray-800 ${
                             fullHeight
-                                ? 'flex h-[80dvh] max-h-[calc(100dvh_-_2rem)] w-full flex-col overflow-hidden rounded-2xl sm:mx-auto sm:max-h-[calc(100dvh_-_3rem)] sm:max-w-[70%] lg:max-h-[calc(100dvh_-_4rem)]'
+                                ? 'flex h-[80dvh] max-h-[calc(100dvh_-_2rem)] w-full flex-col overflow-hidden rounded-2xl sm:mx-auto sm:max-h-[calc(100dvh_-_3rem)] sm:max-w-[60%] lg:max-h-[calc(100dvh_-_4rem)]'
                                 : `mb-6 overflow-hidden rounded-lg sm:mx-auto sm:w-full ${maxWidthClass}`
                         }`}
                     >

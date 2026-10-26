@@ -63,6 +63,7 @@ class QuestionsBankTest extends TestCase
     {
         $this->actingAs($this->admin())
             ->post('/questions', $this->payload($overrides, $options, $correct))
+            ->assertRedirect(route('questions.index'))
             ->assertSessionHasNoErrors();
 
         return Question::latest('id')->firstOrFail();
@@ -176,16 +177,44 @@ class QuestionsBankTest extends TestCase
         $this->assertSame(0, Question::count());
     }
 
-    public function test_a_choice_needs_its_text_in_both_languages(): void
+    public function test_the_language_nobody_wrote_copies_the_one_that_was(): void
+    {
+        $question = $this->question(['question_ar' => ''], [
+            ['fr' => '50 km/h', 'ar' => '', 'prefix_fr' => 'a)'],
+            ['fr' => '70 km/h', 'ar' => ''],
+            ['fr' => '', 'ar' => ''],
+            ['fr' => '', 'ar' => ''],
+        ]);
+
+        $this->assertSame('Quelle est la vitesse maximale en ville ?', $question->textFor('ar'));
+        $this->assertSame($question->textFor('fr'), $question->textFor('ar'));
+
+        $first = $question->options()->where('option_key', 'A')->firstOrFail();
+        $second = $question->options()->where('option_key', 'B')->firstOrFail();
+
+        $this->assertSame('50 km/h', $first->textFor('ar'));
+        $this->assertSame('a)', $first->prefixFor('ar'));
+        $this->assertSame('70 km/h', $second->textFor('ar'));
+        // A choice written only in Arabic is copied the same way, in the other direction.
+        $this->assertNull($second->prefixFor('fr'));
+
+        $fromArabic = $this->question(['question_fr' => '', 'question_ar' => 'ما هي السرعة القصوى؟'], [
+            ['fr' => '', 'ar' => 'صحيح'],
+            ['fr' => '', 'ar' => 'خطأ'],
+            ['fr' => '', 'ar' => ''],
+            ['fr' => '', 'ar' => ''],
+        ]);
+
+        $this->assertSame('ما هي السرعة القصوى؟', $fromArabic->textFor('fr'));
+        $this->assertSame(['صحيح', 'خطأ'], $fromArabic->options()->orderBy('sort_order')
+            ->get()->map(fn ($option) => $option->textFor('fr'))->all());
+    }
+
+    public function test_a_question_written_in_no_language_at_all_is_refused(): void
     {
         $this->actingAs($this->admin())
-            ->post('/questions', $this->payload([], [
-                ['fr' => 'Vrai', 'ar' => 'صحيح'],
-                ['fr' => '', 'ar' => 'خطأ'],
-                ['fr' => '', 'ar' => ''],
-                ['fr' => '', 'ar' => ''],
-            ]))
-            ->assertSessionHasErrors('options');
+            ->post('/questions', $this->payload(['question_fr' => '', 'question_ar' => '']))
+            ->assertSessionHasErrors(['question_fr', 'question_ar']);
 
         $this->assertSame(0, Question::count());
     }
@@ -225,8 +254,9 @@ class QuestionsBankTest extends TestCase
 
     public function test_everything_is_written_or_nothing(): void
     {
-        $this->actingAs($this->admin())
-            ->post('/questions', $this->payload(['question_ar' => '']));
+        // A tick on a slot nobody filled fails after the question row would exist, so the whole
+        // write has to roll back rather than leave an answer-less question behind.
+        $this->actingAs($this->admin())->post('/questions', $this->payload([], [], [3]));
 
         $this->assertSame(0, Question::count());
         $this->assertSame(0, QuestionTranslation::count());
@@ -414,7 +444,7 @@ class QuestionsBankTest extends TestCase
         $this->assertSame('single_choice', $question->refresh()->question_type);
     }
 
-    public function test_a_question_can_be_toggled_from_the_list(): void
+    public function test_a_question_is_archived_and_restored_by_its_endpoint(): void
     {
         $actor = $this->admin();
         $question = $this->question();
@@ -424,6 +454,62 @@ class QuestionsBankTest extends TestCase
 
         $this->actingAs($actor)->patch("/questions/{$question->id}/active");
         $this->assertTrue($question->refresh()->is_active);
+    }
+
+    public function test_a_choice_can_carry_text_in_front_of_it(): void
+    {
+        $actor = $this->admin();
+        $question = $this->question([], [
+            ['fr' => '50 km/h', 'ar' => '٥٠ كلم/س', 'prefix_fr' => 'a)', 'prefix_ar' => 'أ)'],
+            ['fr' => '70 km/h', 'ar' => '٧٠ كلم/س', 'prefix_fr' => '  ', 'prefix_ar' => ''],
+            ['fr' => '', 'ar' => ''],
+            ['fr' => '', 'ar' => ''],
+        ]);
+
+        $first = $question->options()->where('option_key', 'A')->firstOrFail();
+        $second = $question->options()->where('option_key', 'B')->firstOrFail();
+
+        $this->assertSame('a)', $first->prefixFor('fr'));
+        $this->assertSame('أ)', $first->prefixFor('ar'));
+        // Spaces are not a lead-in, and a slot that never sent one is not an error either.
+        $this->assertNull($second->prefixFor('fr'));
+        $this->assertNull($second->prefixFor('ar'));
+
+        $this->actingAs($actor)->get("/questions/{$question->id}/edit")
+            ->assertInertia(fn ($page) => $page->where('question.choices.0.prefixFr', 'a)'));
+
+        $this->actingAs($actor)->patch("/questions/{$question->id}", $this->payload([], [
+            ['fr' => '50 km/h', 'ar' => '٥٠ كلم/س', 'prefix_fr' => '', 'prefix_ar' => ''],
+            ['fr' => '70 km/h', 'ar' => '٧٠ كلم/س'],
+            ['fr' => '', 'ar' => ''],
+            ['fr' => '', 'ar' => ''],
+        ]))->assertSessionHasNoErrors();
+
+        $this->assertNull($first->refresh()->prefixFor('fr'));
+
+        $this->actingAs($actor)->post('/questions', $this->payload([], [
+            ['fr' => '50 km/h', 'ar' => '٥٠ كلم/س', 'prefix_fr' => str_repeat('a', 61)],
+            ['fr' => '70 km/h', 'ar' => '٧٠ كلم/س'],
+            ['fr' => '', 'ar' => ''],
+            ['fr' => '', 'ar' => ''],
+        ]))->assertSessionHasErrors('options.0.prefix_fr');
+    }
+
+    public function test_saving_a_question_leaves_its_archive_alone(): void
+    {
+        $actor = $this->admin();
+        $question = $this->question();
+        $question->update(['is_active' => false]);
+
+        // The form has no active switch any more, so rewriting the wording cannot quietly put an
+        // archived question back into the pool, even from a stale tab that still sends the field.
+        $this->actingAs($actor)->patch("/questions/{$question->id}", $this->payload(['is_active' => '1']))
+            ->assertRedirect(route('questions.index'))->assertSessionHasNoErrors();
+        $this->assertFalse($question->refresh()->is_active);
+
+        // A question nobody ticks on the form still starts life in the pool.
+        $this->actingAs($actor)->post('/questions', $this->payload());
+        $this->assertTrue(Question::latest('id')->first()->is_active);
     }
 
     public function test_an_unused_question_can_be_deleted_with_its_files(): void

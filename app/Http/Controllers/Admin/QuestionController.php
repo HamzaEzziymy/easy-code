@@ -75,7 +75,7 @@ class QuestionController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
-        $data = $request->validate($this->rules());
+        $data = $this->mirrorTexts($request->validate($this->rules($request), $this->messages()));
         $choices = $this->choices($data['options']);
         $correct = $this->correctKeys($data['correct'], $choices);
 
@@ -90,7 +90,7 @@ class QuestionController extends Controller
             return $question;
         });
 
-        return redirect()->route('questions.edit', $question)->with('success', 'created');
+        return redirect()->route('questions.index')->with('success', 'created');
     }
 
     public function edit(Question $question): Response
@@ -103,7 +103,7 @@ class QuestionController extends Controller
 
     public function update(Request $request, Question $question): RedirectResponse
     {
-        $data = $request->validate($this->rules());
+        $data = $this->mirrorTexts($request->validate($this->rules($request), $this->messages()));
         $choices = $this->choices($data['options']);
         $correct = $this->correctKeys($data['correct'], $choices);
 
@@ -116,7 +116,7 @@ class QuestionController extends Controller
             $this->syncOptions($question, $choices, $correct);
         });
 
-        return redirect()->route('questions.edit', $question)->with('success', 'updated');
+        return redirect()->route('questions.index')->with('success', 'updated');
     }
 
     public function toggleActive(Question $question): RedirectResponse
@@ -195,16 +195,36 @@ class QuestionController extends Controller
         return [$sort, $request->query('direction') === 'asc' ? 'asc' : 'desc'];
     }
 
-    private function rules(): array
+    /**
+     * The bank is staff-facing and the strings land in a validation bag, so they stay in English
+     * until the app grows server-side translations.
+     */
+    private function messages(): array
     {
         return [
-            'question_fr' => ['required', 'string', 'max:2000'],
-            'question_ar' => ['required', 'string', 'max:2000'],
+            'question_fr.required' => 'Write the question in at least one language.',
+            'question_ar.required' => 'Write the question in at least one language.',
+        ];
+    }
+
+    private function rules(Request $request): array
+    {
+        // Writing both languages by hand is not the point of the bank: mirrorTexts() copies whichever
+        // one was typed. requiredIf is used because it still runs on a value the form left out.
+        $oneLanguage = fn (string $other) => Rule::requiredIf(
+            fn () => trim((string) $request->input($other)) === ''
+        );
+
+        return [
+            'question_fr' => [$oneLanguage('question_ar'), 'nullable', 'string', 'max:2000'],
+            'question_ar' => [$oneLanguage('question_fr'), 'nullable', 'string', 'max:2000'],
             'license_category_id' => ['nullable', 'integer', Rule::exists(LicenseCategory::class, 'id')],
             'time_limit_seconds' => ['required', 'integer', 'min:1', 'max:600'],
             'options' => ['required', 'array', 'size:4', $this->choicesRule()],
             'options.*.fr' => ['nullable', 'string', 'max:1000'],
             'options.*.ar' => ['nullable', 'string', 'max:1000'],
+            'options.*.prefix_fr' => ['nullable', 'string', 'max:60'],
+            'options.*.prefix_ar' => ['nullable', 'string', 'max:60'],
             'correct' => ['required', 'array', 'min:1', $this->correctRule()],
             // The form ticks the choices by slot position, and A is slot zero.
             'correct.*' => ['integer', 'between:0,3', 'distinct'],
@@ -220,8 +240,37 @@ class QuestionController extends Controller
     }
 
     /**
-     * Choices fill from the top: a question may have two, three or four of them, but never a gap,
-     * and a half-translated one would strand the exam built in the other language.
+     * Whatever the other language lacks is copied from the one that was typed, so an exam sat in
+     * either of them never meets a blank question or a half-empty answer.
+     */
+    private function mirrorTexts(array $data): array
+    {
+        foreach (['question_fr', 'question_ar'] as $target) {
+            $data[$target] = trim((string) ($data[$target] ?? ''));
+        }
+
+        foreach (['question_fr' => 'question_ar', 'question_ar' => 'question_fr'] as $target => $source) {
+            if ($data[$target] === '' && $data[$source] !== '') {
+                $data[$target] = $data[$source];
+            }
+        }
+
+        foreach ($data['options'] as $index => $option) {
+            foreach (['fr' => 'ar', 'ar' => 'fr', 'prefix_fr' => 'prefix_ar', 'prefix_ar' => 'prefix_fr'] as $target => $source) {
+                $written = trim((string) ($option[$target] ?? ''));
+                $other = trim((string) ($option[$source] ?? ''));
+
+                if ($written === '' && $other !== '') {
+                    $data['options'][$index][$target] = $option[$source];
+                }
+            }
+        }
+
+        return $data;
+    }
+
+    /**
+     * Choices fill from the top: a question may have two, three or four of them, but never a gap.
      */
     private function choicesRule(): Closure
     {
@@ -229,17 +278,8 @@ class QuestionController extends Controller
             $filled = [];
 
             foreach (array_values((array) $value) as $index => $option) {
-                $fr = trim((string) ($option['fr'] ?? ''));
-                $ar = trim((string) ($option['ar'] ?? ''));
-
-                if ($fr === '' && $ar === '') {
+                if (trim((string) ($option['fr'] ?? '')) === '' && trim((string) ($option['ar'] ?? '')) === '') {
                     continue;
-                }
-
-                if ($fr === '' || $ar === '') {
-                    $fail('Choice '.self::KEYS[$index].' needs its text in both languages.');
-
-                    return;
                 }
 
                 $filled[] = $index;
@@ -268,7 +308,7 @@ class QuestionController extends Controller
             foreach ((array) $value as $index) {
                 $option = $options[(int) $index] ?? null;
 
-                if (trim((string) ($option['fr'] ?? '')) === '' || trim((string) ($option['ar'] ?? '')) === '') {
+                if (trim((string) ($option['fr'] ?? '')) === '' && trim((string) ($option['ar'] ?? '')) === '') {
                     $fail('A correct answer has to be one of the filled choices.');
 
                     return;
@@ -292,7 +332,15 @@ class QuestionController extends Controller
                 continue;
             }
 
-            $choices[] = ['index' => $index, 'key' => self::KEYS[$index], 'fr' => $fr, 'ar' => $ar];
+            $choices[] = [
+                'index' => $index,
+                'key' => self::KEYS[$index],
+                'fr' => $fr,
+                'ar' => $ar,
+                // The lead-in is optional; an empty one stores as null rather than an empty string.
+                'prefixFr' => trim((string) ($option['prefix_fr'] ?? '')) ?: null,
+                'prefixAr' => trim((string) ($option['prefix_ar'] ?? '')) ?: null,
+            ];
         }
 
         return $choices;
@@ -358,10 +406,15 @@ class QuestionController extends Controller
                 ['is_correct' => in_array($choice['key'], $correct, true), 'sort_order' => $position + 1],
             );
 
-            foreach (['ar' => $choice['ar'], 'fr' => $choice['fr']] as $locale => $text) {
+            foreach (
+                [
+                    'ar' => ['text' => $choice['ar'], 'prefix' => $choice['prefixAr']],
+                    'fr' => ['text' => $choice['fr'], 'prefix' => $choice['prefixFr']],
+                ] as $locale => $values
+            ) {
                 OptionTranslation::updateOrCreate(
                     ['answer_option_id' => $option->id, 'locale' => $locale],
-                    ['option_text' => $text],
+                    ['option_text' => $values['text'], 'prefix' => $values['prefix']],
                 );
             }
         }
@@ -412,6 +465,8 @@ class QuestionController extends Controller
                 'key' => $option->option_key,
                 'fr' => $option->textFor('fr'),
                 'ar' => $option->textFor('ar'),
+                'prefixFr' => $option->prefixFor('fr'),
+                'prefixAr' => $option->prefixFor('ar'),
                 'correct' => $option->is_correct,
             ])->values(),
             'correct' => $options->where('is_correct', true)->pluck('option_key')->values(),

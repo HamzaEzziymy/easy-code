@@ -4,7 +4,6 @@ import Modal from '@/Components/Modal';
 import PrimaryButton from '@/Components/PrimaryButton';
 import QuestionPreview from '@/Components/QuestionPreview';
 import SecondaryButton from '@/Components/SecondaryButton';
-import StatusPill from '@/Components/StatusPill';
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -25,6 +24,13 @@ const cell = 'border-b border-gray-100 py-4 pe-4 align-middle dark:border-gray-7
 /** Staff write in whichever language they have to hand, so a column falls back to the other one. */
 const inLanguage = (rtl, arabic, french) => (rtl ? arabic || french : french || arabic);
 const otherLanguage = (rtl, arabic, french) => (rtl ? french : arabic);
+
+/** One line per row: the list only shows how a question opens, the edit screen shows the rest. */
+const opening = (text) => {
+    const words = (text ?? '').trim().split(/\s+/).filter(Boolean);
+
+    return words.length > 3 ? `${words.slice(0, 3).join(' ')}…` : words.join(' ');
+};
 
 function Segmented({ label, value, options, onChange }) {
     const { t } = useTranslation();
@@ -132,15 +138,6 @@ export default function Index({ questions, filters, stats, categories }) {
             direction: filters.sort === column && filters.direction === 'desc' ? 'asc' : 'desc',
         });
 
-    const toggleActive = (question) => {
-        setBusyId(question.id);
-        router.patch(route('questions.toggleActive', question.id), {}, {
-            preserveScroll: true,
-            only: ['questions', 'stats'],
-            onFinish: () => setBusyId(null),
-        });
-    };
-
     const confirmDelete = () => {
         setBusyId(deleting.id);
         router.delete(route('questions.destroy', deleting.id), {
@@ -192,10 +189,9 @@ export default function Index({ questions, filters, stats, categories }) {
                         </div>
                     )}
 
-                    <div className={`grid gap-4 p-4 sm:grid-cols-2 lg:grid-cols-4 ${panel}`}>
+                    <div className={`grid gap-4 p-4 sm:grid-cols-2 lg:grid-cols-3 ${panel}`}>
                         {[
                             ['total', t('questions.title')],
-                            ['active', t('questions.active')],
                             ['recorded', t('questions.withAudio')],
                             ['uncategorised', t('questions.noCategory')],
                         ].map(([key, label]) => (
@@ -245,16 +241,6 @@ export default function Index({ questions, filters, stats, categories }) {
                                 ]}
                             />
                             <Segmented
-                                label={t('questions.status')}
-                                value={query.status}
-                                onChange={(status) => applyFilter({ status })}
-                                options={[
-                                    { value: '', labelKey: 'questions.all' },
-                                    { value: 'active', labelKey: 'questions.active' },
-                                    { value: 'inactive', labelKey: 'questions.inactive' },
-                                ]}
-                            />
-                            <Segmented
                                 label={t('questions.media')}
                                 value={query.media}
                                 onChange={(media) => applyFilter({ media })}
@@ -285,7 +271,7 @@ export default function Index({ questions, filters, stats, categories }) {
 
                     <div className={`${panel} overflow-hidden`}>
                         <div className="overflow-x-auto">
-                            <table className="w-full min-w-[1240px] text-start text-sm">
+                            <table className="w-full min-w-[900px] text-start text-sm">
                                 <thead>
                                     <tr className="bg-gray-50 text-start dark:bg-gray-900/40">
                                         <th className={`${cell} ps-4 text-start`}>{t('questions.question')}</th>
@@ -293,7 +279,6 @@ export default function Index({ questions, filters, stats, categories }) {
                                         <th className={`${cell} text-start`}>{t('questions.choices')}</th>
                                         <th className={`${cell} text-start`}>{t('questions.time')}</th>
                                         <th className={`${cell} text-start`}>{t('questions.media')}</th>
-                                        <th className={`${cell} text-start`}>{t('questions.status')}</th>
                                         <th className={`${cell} pe-4 text-end`}>{t('questions.actions')}</th>
                                     </tr>
                                 </thead>
@@ -322,22 +307,19 @@ export default function Index({ questions, filters, stats, categories }) {
                                                 className="transition-colors hover:bg-gray-50/80 dark:hover:bg-gray-700/30"
                                             >
                                                 <td className={`${cell} ps-4`}>
-                                                    <Link
-                                                        href={route('questions.edit', question.id)}
-                                                        className="block max-w-md"
-                                                    >
+                                                    <Link href={route('questions.edit', question.id)} className="block">
                                                         <span
                                                             dir={rtl ? 'rtl' : 'ltr'}
-                                                            className="line-clamp-2 font-semibold text-gray-900 dark:text-gray-100"
+                                                            className="block truncate font-semibold text-gray-900 dark:text-gray-100"
                                                         >
-                                                            {primary}
+                                                            {opening(primary)}
                                                         </span>
                                                         {secondary && (
                                                             <span
                                                                 dir={rtl ? 'ltr' : 'rtl'}
                                                                 className="mt-0.5 block truncate text-xs text-gray-600 dark:text-gray-400"
                                                             >
-                                                                {secondary}
+                                                                {opening(secondary)}
                                                             </span>
                                                         )}
                                                     </Link>
@@ -373,18 +355,18 @@ export default function Index({ questions, filters, stats, categories }) {
                                                 </td>
                                                 <td className={cell}>
                                                     <div className="flex flex-wrap gap-1.5">
-                                                        {question.choices.map((choice) => (
+                                                        {question.choices.map((choice, index) => (
                                                             <span
                                                                 key={choice.key}
                                                                 dir="ltr"
                                                                 title={inLanguage(rtl, choice.ar, choice.fr)}
-                                                                className={`inline-flex h-7 w-7 items-center justify-center rounded-lg text-xs font-bold ${
+                                                                className={`inline-flex h-7 w-7 items-center justify-center rounded-lg text-xs font-bold tabular-nums ${
                                                                     choice.correct
                                                                         ? 'bg-emerald-500 text-white'
                                                                         : 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-300'
                                                                 }`}
                                                             >
-                                                                {choice.key}
+                                                                {index + 1}
                                                             </span>
                                                         ))}
                                                     </div>
@@ -424,35 +406,6 @@ export default function Index({ questions, filters, stats, categories }) {
                                                             <span className="text-gray-400">—</span>
                                                         )}
                                                     </div>
-                                                </td>
-                                                <td className={cell}>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => toggleActive(question)}
-                                                        disabled={busyId === question.id}
-                                                        title={
-                                                            question.isActive
-                                                                ? t('questions.deactivateHelp')
-                                                                : t('questions.activateHelp')
-                                                        }
-                                                        className="disabled:opacity-50"
-                                                    >
-                                                        <StatusPill
-                                                            status={question.isActive ? 'active' : 'cancelled'}
-                                                            label={
-                                                                question.isActive
-                                                                    ? t('questions.active')
-                                                                    : t('questions.inactive')
-                                                            }
-                                                        />
-                                                    </button>
-                                                    {question.examsCount > 0 && (
-                                                        <span className="mt-1 block text-xs text-gray-600 dark:text-gray-400">
-                                                            {t('questions.usedIn', {
-                                                                count: question.examsCount,
-                                                            })}
-                                                        </span>
-                                                    )}
                                                 </td>
                                                 <td className={`${cell} pe-4`}>
                                                     <div className="flex items-center justify-end gap-x-1">
@@ -577,6 +530,11 @@ export default function Index({ questions, filters, stats, categories }) {
                     <p dir={rtl ? 'rtl' : 'ltr'} className="truncate text-sm font-semibold text-gray-900 dark:text-gray-100">
                         {inLanguage(rtl, deleting?.textAr, deleting?.textFr)}
                     </p>
+                    {deleting?.examsCount > 0 && (
+                        <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-400/30 dark:bg-amber-500/15 dark:text-amber-200">
+                            {t('questions.usedIn', { count: deleting.examsCount })}
+                        </p>
+                    )}
                     <div className="flex justify-end gap-x-3">
                         <SecondaryButton onClick={() => setDeleting(null)}>{t('common.cancel')}</SecondaryButton>
                         <DangerButton disabled={busyId === deleting?.id} onClick={confirmDelete}>

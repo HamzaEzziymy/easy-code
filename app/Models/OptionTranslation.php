@@ -13,6 +13,7 @@ class OptionTranslation extends Model
         'answer_option_id',
         'locale',
         'option_text',
+        'prefix',
     ];
 
     public function answerOption(): BelongsTo

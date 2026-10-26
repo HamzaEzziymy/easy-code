@@ -27,6 +27,7 @@ export default function QuestionPreview({ question, onClose }) {
     const [checked, setChecked] = useState(false);
     const [revealed, setRevealed] = useState(false);
     const [left, setLeft] = useState(0);
+    const [ratio, setRatio] = useState(null);
 
     const open = question !== null;
     const total = question?.timeSeconds ?? 0;
@@ -49,6 +50,10 @@ export default function QuestionPreview({ question, onClose }) {
         return () => clearInterval(ticker);
     }, [open, expired]);
 
+    // A new picture is a new shape, so the layout waits for it to measure instead of keeping the
+    // arrangement the previous language's image chose.
+    useEffect(() => setRatio(null), [question?.id, lang]);
+
     const rtl = lang === 'ar';
     const choices = question?.choices ?? [];
     const correct = choices.flatMap((choice, index) => (choice.correct ? [index] : []));
@@ -57,6 +62,19 @@ export default function QuestionPreview({ question, onClose }) {
     const sound = inLang(question?.media.audioAr, question?.media.audioFr);
     const text = inLang(question?.textAr, question?.textFr);
     const label = (choice) => inLang(choice.ar, choice.fr);
+    const prefix = (choice) => inLang(choice.prefixAr, choice.prefixFr);
+
+    // A tall picture — a panneau, a dashcam strip, a phone screenshot — keeps its height beside the
+    // wording; a wide one lies down on top and pushes the sheet under it.
+    const split = Boolean(image) && ratio !== null && ratio < 1;
+    const mediaClass = `relative min-h-[26vh] flex-1 overflow-hidden rounded-t-2xl bg-black lg:min-h-0 ${
+        split ? 'lg:w-[52%] lg:flex-none lg:rounded-bl-2xl lg:rounded-tr-none' : ''
+    }`;
+    const sheetClass = `shrink-0 rounded-b-2xl border-t border-gray-200 p-4 sm:p-5 dark:border-gray-700 ${
+        split
+            ? 'lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:rounded-tr-2xl lg:rounded-bl-none lg:border-t-0 lg:border-l'
+            : ''
+    }`;
 
     // The recording is the question read out, so it starts with the slide and on every language
     // switch; a browser that blocks it leaves the speaker button over the picture.
@@ -179,10 +197,21 @@ export default function QuestionPreview({ question, onClose }) {
                 {/* The sheet follows the exam language, but the answer column never moves off the
                     right edge, so the row is pinned left-to-right in both directions. */}
                 <div dir="ltr" className="flex h-full min-h-0 flex-col gap-4 lg:flex-row">
-                    <div className={`${panel} flex min-h-0 flex-1 flex-col`}>
-                        <div className="relative min-h-[26vh] flex-1 overflow-hidden rounded-t-2xl bg-black lg:min-h-0">
+                    <div className={`${panel} flex min-h-0 flex-1 flex-col ${split ? 'lg:flex-row' : ''}`}>
+                        <div className={mediaClass}>
                             {image ? (
-                                <img src={image} alt="" className="h-full w-full object-contain" />
+                                <img
+                                    key={image}
+                                    src={image}
+                                    alt=""
+                                    onLoad={(event) =>
+                                        setRatio(
+                                            event.currentTarget.naturalWidth /
+                                                event.currentTarget.naturalHeight,
+                                        )
+                                    }
+                                    className="h-full w-full object-contain"
+                                />
                             ) : (
                                 <div className="flex h-full w-full flex-col items-center justify-center gap-y-2 text-gray-500">
                                     <FaImage size={22} />
@@ -207,13 +236,7 @@ export default function QuestionPreview({ question, onClose }) {
                             )}
                         </div>
 
-                        <div
-                            dir={rtl ? 'rtl' : 'ltr'}
-                            className="shrink-0 rounded-b-2xl border-t border-gray-200 p-4 sm:p-5 dark:border-gray-700"
-                        >
-                            <p dir="ltr" className="font-mono text-xs text-gray-500 dark:text-gray-400">
-                                1-
-                            </p>
+                        <div dir={rtl ? 'rtl' : 'ltr'} className={sheetClass}>
                             <p
                                 className={`mt-0.5 text-base leading-snug font-semibold sm:text-lg ${
                                     expired
@@ -231,25 +254,31 @@ export default function QuestionPreview({ question, onClose }) {
                                             type="button"
                                             onClick={() => pick(index)}
                                             disabled={expired}
-                                            className={`flex w-full items-baseline gap-x-2 rounded-lg px-2 py-1 text-start transition-colors disabled:cursor-not-allowed ${
+                                            className={`flex w-full items-start gap-x-3 rounded-lg px-2 py-1 text-start transition-colors disabled:cursor-not-allowed ${
                                                 picked.includes(index)
                                                     ? 'bg-blue-50 dark:bg-[#007BFF]/15'
                                                     : 'hover:bg-gray-50 dark:hover:bg-gray-700/40'
                                             }`}
                                         >
-                                            <span
-                                                className={`font-medium ${
-                                                    picked.includes(index)
-                                                        ? 'text-[#007BFF] dark:text-[#7EB8F5]'
-                                                        : 'text-gray-800 dark:text-gray-100'
-                                                }`}
-                                            >
-                                                {label(choice)}
+                                            <span className="min-w-0 flex-1">
+                                                {prefix(choice) && (
+                                                    <span className="block font-mono text-xs leading-snug text-gray-500 dark:text-gray-400">
+                                                        {prefix(choice)}
+                                                    </span>
+                                                )}
+                                                <span
+                                                    className={`block text-base leading-snug font-medium ${
+                                                        picked.includes(index)
+                                                            ? 'text-[#007BFF] dark:text-[#7EB8F5]'
+                                                            : 'text-gray-800 dark:text-gray-100'
+                                                    }`}
+                                                >
+                                                    {label(choice)}
+                                                </span>
                                             </span>
-                                            <span className="flex-1 border-b border-dotted border-gray-300 dark:border-gray-600" />
                                             <span
                                                 dir="ltr"
-                                                className="font-mono text-sm text-gray-500 tabular-nums dark:text-gray-400"
+                                                className="shrink-0 font-mono text-sm text-gray-500 tabular-nums dark:text-gray-400"
                                             >
                                                 {index + 1}
                                             </span>

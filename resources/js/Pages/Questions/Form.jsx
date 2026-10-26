@@ -8,11 +8,9 @@ import { useTranslation } from 'react-i18next';
 import { toLatinDigits } from '@/Support/digits';
 import {
     FaArrowLeft,
-    FaCommentDots,
     FaFloppyDisk,
     FaGear,
     FaImage,
-    FaListOl,
     FaVolumeHigh,
     FaXmark,
 } from 'react-icons/fa6';
@@ -20,28 +18,13 @@ import {
 const fieldClass =
     'mt-1.5 block w-full rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-800 outline-none transition placeholder:text-gray-400 focus:border-[#007BFF] focus:ring-2 focus:ring-[#007BFF]/20 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:placeholder:text-gray-500';
 
-/** The letters the exam screen shows next to each choice, and the slot index it is stored under. */
+const panel =
+    'rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800';
+
+/** The letters a question's choices are stored under, in the slot order the exam screen numbers. */
 const KEYS = ['A', 'B', 'C', 'D'];
 
-const MEDIA = [
-    { slot: 'image_ar', kind: 'image', labelKey: 'imageAr' },
-    { slot: 'audio_ar', kind: 'audio', labelKey: 'audioAr' },
-    { slot: 'image_fr', kind: 'image', labelKey: 'imageFr' },
-    { slot: 'audio_fr', kind: 'audio', labelKey: 'audioFr' },
-];
-
-function Section({ title, description, icon, children }) {
-    return (
-        <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-            <h3 className="flex items-center gap-x-2 text-sm font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">
-                <span className="text-[#007BFF] dark:text-[#00AEEF]">{icon}</span>
-                {title}
-            </h3>
-            {description && <p className="mt-1 text-xs text-gray-600 dark:text-gray-400">{description}</p>}
-            <div className="mt-4">{children}</div>
-        </section>
-    );
-}
+const SLOTS = ['image_ar', 'image_fr', 'audio_ar', 'audio_fr'];
 
 function Field({ label, htmlFor, hint, error, required, children }) {
     return (
@@ -64,10 +47,14 @@ function Field({ label, htmlFor, hint, error, required, children }) {
 export default function Form({ question, categories }) {
     const { t, i18n } = useTranslation();
     const isEdit = question !== null;
-    const rtl = i18n.language?.startsWith('ar');
+    const uiRtl = i18n.language?.startsWith('ar');
+
+    // A question is written one language at a time, the way the trainee reads it.
+    const [lang, setLang] = useState(() => (i18n.language?.startsWith('ar') ? 'ar' : 'fr'));
+    const rtl = lang === 'ar';
 
     const [previews, setPreviews] = useState(() =>
-        Object.fromEntries(MEDIA.map(({ slot }) => [slot, isEdit ? question.media[slot] : null])),
+        Object.fromEntries(SLOTS.map((slot) => [slot, isEdit ? question.media[slot] : null])),
     );
 
     const form = useForm({
@@ -78,7 +65,12 @@ export default function Form({ question, categories }) {
         options: KEYS.map((key) => {
             const choice = question?.choices.find((item) => item.key === key);
 
-            return { fr: choice?.fr ?? '', ar: choice?.ar ?? '' };
+            return {
+                prefix_fr: choice?.prefixFr ?? '',
+                prefix_ar: choice?.prefixAr ?? '',
+                fr: choice?.fr ?? '',
+                ar: choice?.ar ?? '',
+            };
         }),
         correct: question
             ? question.choices
@@ -141,7 +133,74 @@ export default function Form({ question, categories }) {
         });
     };
 
-    const shown = (slot) => form.data[`remove_${slot}`] ? null : previews[slot];
+    const shown = (slot) => (form.data[`remove_${slot}`] ? null : previews[slot]);
+
+    const mediaBox = (slot, kind) => {
+        const choose = kind === 'image' ? t('questions.chooseImage') : t('questions.chooseAudio');
+        const preview = shown(slot);
+
+        return (
+            <div>
+                <div
+                    className={`flex items-center justify-center overflow-hidden rounded-xl border ${
+                        preview
+                            ? 'border-gray-200 bg-gray-50 p-2 dark:border-gray-600 dark:bg-gray-900/40'
+                            : 'border-dashed border-gray-300 bg-white dark:border-gray-600 dark:bg-gray-700'
+                    } ${kind === 'image' ? 'min-h-[32vh]' : 'py-4'}`}
+                >
+                    {preview ? (
+                        kind === 'image' ? (
+                            <img src={preview} alt="" className="max-h-[52vh] w-full object-contain" />
+                        ) : (
+                            <audio src={preview} controls className="w-full" />
+                        )
+                    ) : (
+                        <p className="px-3 text-center text-xs text-gray-600 dark:text-gray-400">
+                            {kind === 'image' ? t('questions.previewNoImage') : t('questions.chooseAudio')}
+                        </p>
+                    )}
+                </div>
+
+                <div className="mt-2 flex items-center gap-x-2">
+                    <label
+                        className={`inline-flex flex-1 cursor-pointer items-center justify-center gap-x-2 rounded-xl border px-3 py-2 text-xs font-medium transition-colors ${
+                            preview
+                                ? 'border-gray-300 bg-white text-gray-700 hover:border-[#007BFF] hover:text-[#007BFF] dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200'
+                                : 'border-[#007BFF] bg-[#007BFF] text-white hover:bg-[#0068d6]'
+                        }`}
+                    >
+                        {kind === 'image' ? <FaImage size={12} /> : <FaVolumeHigh size={12} />}
+                        {choose}
+                        <input
+                            type="file"
+                            accept={
+                                kind === 'image'
+                                    ? 'image/jpeg,image/png,image/webp'
+                                    : 'audio/mpeg,audio/wav,audio/ogg,audio/mp4,audio/aac'
+                            }
+                            className="sr-only"
+                            onChange={(event) => pickMedia(slot, event)}
+                        />
+                    </label>
+                    {preview && (
+                        <button
+                            type="button"
+                            onClick={() => clearMedia(slot)}
+                            title={t('questions.removeMedia')}
+                            aria-label={t('questions.removeMedia')}
+                            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-gray-300 text-gray-500 transition-colors hover:border-red-300 hover:bg-red-50 hover:text-red-600 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-red-500/20"
+                        >
+                            <FaXmark size={12} />
+                        </button>
+                    )}
+                </div>
+
+                <InputError className="mt-1.5" message={form.errors[slot]} />
+            </div>
+        );
+    };
+
+    const filled = (locale) => form.data[`question_${locale}`].trim() !== '';
 
     return (
         <AuthenticatedLayout
@@ -176,100 +235,155 @@ export default function Form({ question, categories }) {
 
             <form onSubmit={submit} className="py-8" encType="multipart/form-data">
                 <div className="mx-auto max-w-5xl space-y-5 px-4 sm:px-6 lg:px-8">
-                    <Section title={t('questions.textSection')} description={t('questions.textHelp')} icon={<FaCommentDots size={13} />}>
-                        <div className="grid gap-4 sm:grid-cols-2">
-                            <Field
-                                label={t('questions.questionFr')}
-                                htmlFor="question-fr"
-                                required
-                                error={form.errors.question_fr}
-                            >
-                                <textarea
-                                    id="question-fr"
-                                    rows={4}
-                                    className={fieldClass}
-                                    value={form.data.question_fr}
-                                    onChange={(event) => form.setData('question_fr', event.target.value)}
-                                />
-                            </Field>
-                            <Field
-                                label={t('questions.questionAr')}
-                                htmlFor="question-ar"
-                                required
-                                error={form.errors.question_ar}
-                            >
-                                <textarea
-                                    id="question-ar"
-                                    dir="rtl"
-                                    rows={4}
-                                    className={fieldClass}
-                                    value={form.data.question_ar}
-                                    onChange={(event) => form.setData('question_ar', event.target.value)}
-                                />
-                            </Field>
-                        </div>
-                    </Section>
-
-                    <Section title={t('questions.choicesSection')} description={t('questions.choicesHelp')} icon={<FaListOl size={13} />}>
-                        <div className="space-y-3">
-                            <div className="grid grid-cols-[auto_1fr_1fr_auto] items-center gap-x-3 text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-400">
-                                <span className="w-7 text-center">{t('questions.letter')}</span>
-                                <span>{t('questions.choiceFr')}</span>
-                                <span dir="rtl" className="text-end">
-                                    {t('questions.choiceAr')}
-                                </span>
-                                <span className="w-16 text-center">{t('questions.correct')}</span>
-                            </div>
-
-                            {form.data.options.map((option, index) => (
-                                <div key={index} className="grid grid-cols-[auto_1fr_1fr_auto] items-start gap-x-3">
-                                    <span
-                                        dir="ltr"
-                                        className={`mt-3 flex h-7 w-7 items-center justify-center rounded-lg text-xs font-bold ${
-                                            isChecked(index)
-                                                ? 'bg-emerald-500 text-white'
-                                                : 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-300'
-                                        }`}
-                                    >
-                                        {KEYS[index]}
-                                    </span>
-                                    <input
-                                        aria-label={`${t('questions.choiceFr')} ${KEYS[index]}`}
-                                        className={fieldClass}
-                                        value={option.fr}
-                                        onChange={(event) => setOption(index, 'fr', event.target.value)}
-                                    />
-                                    <input
-                                        dir="rtl"
-                                        aria-label={`${t('questions.choiceAr')} ${KEYS[index]}`}
-                                        className={fieldClass}
-                                        value={option.ar}
-                                        onChange={(event) => setOption(index, 'ar', event.target.value)}
-                                    />
-                                    <label className="flex h-[42px] w-16 cursor-pointer items-center justify-center">
-                                        <input
-                                            type="checkbox"
-                                            checked={isChecked(index)}
-                                            onChange={() => toggleCorrect(index)}
-                                            className="h-5 w-5 rounded border-gray-300 text-[#007BFF] focus:ring-[#007BFF]/25 dark:border-gray-600 dark:bg-gray-700"
-                                            aria-label={`${t('questions.correct')} ${KEYS[index]}`}
+                    <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
+                        <div className="inline-flex rounded-xl border border-gray-300 bg-white p-0.5 dark:border-gray-600 dark:bg-gray-700">
+                            {['fr', 'ar'].map((locale) => (
+                                <button
+                                    key={locale}
+                                    type="button"
+                                    onClick={() => setLang(locale)}
+                                    className={`relative rounded-[10px] px-5 py-2 text-sm font-semibold uppercase tracking-wide transition-colors ${
+                                        lang === locale
+                                            ? 'bg-[#007BFF] text-white'
+                                            : 'text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-100'
+                                    }`}
+                                >
+                                    {t(`questions.lang.${locale}`)}
+                                    {!filled(locale) && (
+                                        <span
+                                            className="absolute end-1.5 top-1.5 h-2 w-2 rounded-full bg-[#FF9800]"
+                                            title={t('questions.langEmpty', {
+                                                lang: t(`questions.lang.${locale}`),
+                                            })}
                                         />
-                                    </label>
-                                </div>
+                                    )}
+                                </button>
                             ))}
                         </div>
-                        <InputError className="mt-3" message={form.errors.options} />
-                        <InputError className="mt-1" message={form.errors.correct} />
-                        {form.errors['correct.0'] && (
-                            <InputError className="mt-1" message={form.errors['correct.0']} />
-                        )}
-                        <p className="mt-2 text-xs text-gray-600 dark:text-gray-400">
-                            {t('questions.correctCount', { count: form.data.correct.length })}
-                        </p>
-                    </Section>
+                        <p className="text-xs text-gray-600 dark:text-gray-400">{t('questions.langHelp')}</p>
+                    </div>
 
-                    <Section title={t('questions.settingsSection')} description={t('questions.settingsHelp')} icon={<FaGear size={13} />}>
-                        <div className="grid gap-4 sm:grid-cols-2">
+                    {/* The same sheet the trainee sees: picture, then the wording under it, then the answers. */}
+                    <section className={`${panel} overflow-hidden`}>
+                        <div className="space-y-4 border-b border-gray-200 p-4 sm:p-5 dark:border-gray-700">
+                            <div>
+                                <h3 className="mb-2 flex items-center gap-x-2 text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">
+                                    <FaImage size={12} className="text-[#007BFF] dark:text-[#00AEEF]" />
+                                    {t('questions.image')} · {t(`questions.lang.${lang}`)}
+                                </h3>
+                                {mediaBox(`image_${lang}`, 'image')}
+                            </div>
+                            <div>
+                                <h3 className="mb-2 flex items-center gap-x-2 text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">
+                                    <FaVolumeHigh size={12} className="text-[#007BFF] dark:text-[#00AEEF]" />
+                                    {t('questions.audio')} · {t(`questions.lang.${lang}`)}
+                                </h3>
+                                {mediaBox(`audio_${lang}`, 'audio')}
+                            </div>
+                        </div>
+
+                        <div dir={rtl ? 'rtl' : 'ltr'} className="space-y-5 p-4 sm:p-5">
+                            <Field
+                                label={t('questions.question')}
+                                htmlFor={`question-${lang}`}
+                                required
+                                error={form.errors[`question_${lang}`]}
+                            >
+                                <textarea
+                                    id={`question-${lang}`}
+                                    dir={rtl ? 'rtl' : 'ltr'}
+                                    rows={3}
+                                    className={fieldClass}
+                                    value={form.data[`question_${lang}`]}
+                                    onChange={(event) => form.setData(`question_${lang}`, event.target.value)}
+                                />
+                            </Field>
+
+                            <div>
+                                <h3 className="flex items-center gap-x-2 text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">
+                                    {t('questions.choicesSection')}
+                                </h3>
+                                <p className="mt-1 text-xs text-gray-600 dark:text-gray-400">
+                                    {t('questions.choicesHelp')} {t('questions.correctHint')}
+                                </p>
+
+                                <div className="mt-3 space-y-3">
+                                    {form.data.options.map((option, index) => (
+                                        <div key={index} className="flex items-center gap-x-3">
+                                            <button
+                                                type="button"
+                                                onClick={() => toggleCorrect(index)}
+                                                aria-pressed={isChecked(index)}
+                                                title={t('questions.correct')}
+                                                aria-label={`${t('questions.correct')} ${index + 1}`}
+                                                dir="ltr"
+                                                className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 text-sm font-semibold tabular-nums transition-colors ${
+                                                    isChecked(index)
+                                                        ? 'border-emerald-500 bg-emerald-500 text-white'
+                                                        : 'border-gray-300 bg-white text-gray-500 hover:border-[#007BFF] hover:text-[#007BFF] dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300'
+                                                }`}
+                                            >
+                                                {index + 1}
+                                            </button>
+
+                                            <div className="min-w-0 flex-1 space-y-2">
+                                                <Field
+                                                    label={t('questions.label')}
+                                                    htmlFor={`choice-label-${index}`}
+                                                    error={form.errors[`options.${index}.prefix_${lang}`]}
+                                                >
+                                                    <textarea
+                                                        id={`choice-label-${index}`}
+                                                        dir={rtl ? 'rtl' : 'ltr'}
+                                                        rows={2}
+                                                        maxLength={60}
+                                                        placeholder="a)"
+                                                        value={option[`prefix_${lang}`]}
+                                                        onChange={(event) =>
+                                                            setOption(index, `prefix_${lang}`, event.target.value)
+                                                        }
+                                                        className={fieldClass}
+                                                    />
+                                                </Field>
+                                                <Field
+                                                    label={t('questions.choice')}
+                                                    htmlFor={`choice-text-${index}`}
+                                                    required={index < 2}
+                                                    error={form.errors[`options.${index}.${lang}`]}
+                                                >
+                                                    <input
+                                                        id={`choice-text-${index}`}
+                                                        dir={rtl ? 'rtl' : 'ltr'}
+                                                        placeholder={t('questions.answer')}
+                                                        value={option[lang]}
+                                                        onChange={(event) => setOption(index, lang, event.target.value)}
+                                                        className={fieldClass}
+                                                    />
+                                                </Field>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                <InputError className="mt-3" message={form.errors.options} />
+                                <InputError className="mt-1" message={form.errors.correct} />
+                                {form.errors['correct.0'] && (
+                                    <InputError className="mt-1" message={form.errors['correct.0']} />
+                                )}
+                                <p className="mt-2 text-xs text-gray-600 dark:text-gray-400">
+                                    {t('questions.correctCount', { count: form.data.correct.length })}
+                                </p>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section className={`${panel} p-4 sm:p-5`}>
+                        <h3 className="flex items-center gap-x-2 text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">
+                            <FaGear size={12} className="text-[#007BFF] dark:text-[#00AEEF]" />
+                            {t('questions.settingsSection')}
+                        </h3>
+
+                        <div className="mt-4 grid gap-4 sm:grid-cols-2">
                             <Field
                                 label={t('questions.category')}
                                 htmlFor="question-category"
@@ -286,7 +400,7 @@ export default function Form({ question, categories }) {
                                     {categories.map((category) => (
                                         <option key={category.id} value={category.id}>
                                             {category.code} —{' '}
-                                            {rtl
+                                            {uiRtl
                                                 ? category.nameAr || category.nameFr
                                                 : category.nameFr || category.nameAr}
                                         </option>
@@ -321,83 +435,7 @@ export default function Form({ question, categories }) {
                                 </div>
                             </Field>
                         </div>
-                    </Section>
-
-                    <Section title={t('questions.mediaSection')} description={t('questions.mediaHelp')} icon={<FaImage size={13} />}>
-                        <div className="grid gap-4 sm:grid-cols-2">
-                            {['ar', 'fr'].map((locale) => (
-                                <div key={locale} className="space-y-4">
-                                    <h4 className="text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-400">
-                                        {t(`questions.lang.${locale}`)}
-                                    </h4>
-                                    {MEDIA.filter((item) => item.slot.endsWith(locale)).map(({ slot, kind, labelKey }) => {
-                                        const choose = kind === 'image' ? t('questions.chooseImage') : t('questions.chooseAudio');
-
-                                        return (
-                                        <div key={slot}>
-                                            <p className="mb-1.5 text-sm font-medium text-gray-700 dark:text-gray-200">
-                                                {t(`questions.${labelKey}`)}
-                                            </p>
-                                            <div
-                                                className={`flex items-center gap-x-3 rounded-xl border ${
-                                                    shown(slot)
-                                                        ? 'border-gray-200 bg-gray-50 p-2 dark:border-gray-600 dark:bg-gray-900/40'
-                                                        : 'border-dashed border-gray-300 bg-white p-2 dark:border-gray-600 dark:bg-gray-700'
-                                                }`}
-                                            >
-                                                <div className="min-w-0 flex-1">
-                                                    {shown(slot) ? (
-                                                        kind === 'image' ? (
-                                                            <img
-                                                                src={shown(slot)}
-                                                                alt=""
-                                                                className="h-24 w-full rounded-lg object-contain"
-                                                            />
-                                                        ) : (
-                                                            <audio src={shown(slot)} controls className="w-full" />
-                                                        )
-                                                    ) : (
-                                                        <p className="px-1 py-4 text-xs text-gray-600 dark:text-gray-400">
-                                                            {choose}
-                                                        </p>
-                                                    )}
-                                                </div>
-                                                <label
-                                                    title={choose}
-                                                    className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-lg border border-gray-300 text-gray-500 transition-colors hover:border-[#007BFF] hover:text-[#007BFF] dark:border-gray-600 dark:text-gray-300"
-                                                >
-                                                    {kind === 'image' ? <FaImage size={13} /> : <FaVolumeHigh size={13} />}
-                                                    <input
-                                                        type="file"
-                                                        accept={
-                                                            kind === 'image'
-                                                                ? 'image/jpeg,image/png,image/webp'
-                                                                : 'audio/mpeg,audio/wav,audio/ogg,audio/mp4,audio/aac'
-                                                        }
-                                                        className="sr-only"
-                                                        onChange={(event) => pickMedia(slot, event)}
-                                                    />
-                                                </label>
-                                                {shown(slot) && (
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => clearMedia(slot)}
-                                                        title={t('questions.removeMedia')}
-                                                        aria-label={t('questions.removeMedia')}
-                                                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-gray-300 text-gray-500 transition-colors hover:border-red-300 hover:bg-red-50 hover:text-red-600 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-red-500/20"
-                                                    >
-                                                        <FaXmark size={13} />
-                                                    </button>
-                                                )}
-                                            </div>
-                                            <InputError className="mt-1.5" message={form.errors[slot]} />
-                                        </div>
-                                        );
-                                    })}
-                                </div>
-                            ))}
-                        </div>
-                    </Section>
+                    </section>
 
                     <div className="flex items-center justify-end gap-x-3">
                         <Link href={route('questions.index')}>
