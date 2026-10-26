@@ -11,6 +11,7 @@ import {
     FaFloppyDisk,
     FaGear,
     FaImage,
+    FaPlus,
     FaVolumeHigh,
     FaXmark,
 } from 'react-icons/fa6';
@@ -73,6 +74,10 @@ export default function Form({ question, categories }) {
         Object.fromEntries(SLOTS.map((slot) => [slot, question?.media?.[MEDIA_PROPS[slot]] ?? null])),
     );
 
+    // Tracks which choice label rows the user has dismissed (by index).
+    // A dismissed row is hidden and its prefix fields are cleared.
+    const [hiddenLabels, setHiddenLabels] = useState(() => new Set());
+
     const form = useForm({
         question_fr: question?.textFr ?? '',
         question_ar: question?.textAr ?? '',
@@ -116,13 +121,22 @@ export default function Form({ question, categories }) {
 
     // A label fronts the choice, not one language: clearing both stops the other one being copied
     // back over it when the question is saved.
-    const clearLabel = (index) =>
+    const clearLabel = (index) => {
         form.setData((data) => ({
             ...data,
             options: data.options.map((option, i) =>
                 i === index ? { ...option, prefix_fr: '', prefix_ar: '' } : option,
             ),
         }));
+        setHiddenLabels((prev) => new Set([...prev, index]));
+    };
+
+    const restoreLabel = (index) =>
+        setHiddenLabels((prev) => {
+            const next = new Set(prev);
+            next.delete(index);
+            return next;
+        });
 
     const isChecked = (index) => form.data.correct.includes(index);
 
@@ -360,25 +374,43 @@ export default function Form({ question, categories }) {
                                     {form.data.options.map((option, index) => (
                                         <div key={index} className="flex items-end gap-x-3">
                                             <div className="min-w-0 flex-1 space-y-2">
-                                                <Field
-                                                    label={t('questions.label')}
-                                                    htmlFor={`choice-label-${index}`}
-                                                    error={form.errors[`options.${index}.prefix_${lang}`]}
-                                                    action={clearButton(() => clearLabel(index), t('questions.removeLabel'))}
-                                                >
-                                                    <textarea
-                                                        id={`choice-label-${index}`}
-                                                        dir={rtl ? 'rtl' : 'ltr'}
-                                                        rows={2}
-                                                        maxLength={60}
-                                                        placeholder="a)"
-                                                        value={option[`prefix_${lang}`]}
-                                                        onChange={(event) =>
-                                                            setOption(index, `prefix_${lang}`, event.target.value)
-                                                        }
-                                                        className={fieldClass}
-                                                    />
-                                                </Field>
+                                                {hiddenLabels.has(index) ? (
+                                                    /* Label row removed — show a restore button instead */
+                                                    <div className="flex items-center gap-x-2">
+                                                        <span className="text-sm text-gray-400 dark:text-gray-500">
+                                                            {t('questions.label')}
+                                                        </span>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => restoreLabel(index)}
+                                                            title={t('questions.addLabel')}
+                                                            aria-label={t('questions.addLabel')}
+                                                            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-gray-300 text-gray-400 transition-colors hover:border-[#007BFF] hover:bg-blue-50 hover:text-[#007BFF] dark:border-gray-600 dark:text-gray-500 dark:hover:bg-blue-500/10 dark:hover:text-[#7EB8F5]"
+                                                        >
+                                                            <FaPlus size={10} />
+                                                        </button>
+                                                    </div>
+                                                ) : (
+                                                    <Field
+                                                        label={t('questions.label')}
+                                                        htmlFor={`choice-label-${index}`}
+                                                        error={form.errors[`options.${index}.prefix_${lang}`]}
+                                                        action={clearButton(() => clearLabel(index), t('questions.removeLabel'))}
+                                                    >
+                                                        <textarea
+                                                            id={`choice-label-${index}`}
+                                                            dir={rtl ? 'rtl' : 'ltr'}
+                                                            rows={2}
+                                                            maxLength={60}
+                                                            placeholder="a)"
+                                                            value={option[`prefix_${lang}`]}
+                                                            onChange={(event) =>
+                                                                setOption(index, `prefix_${lang}`, event.target.value)
+                                                            }
+                                                            className={fieldClass}
+                                                        />
+                                                    </Field>
+                                                )}
                                                 <Field
                                                     label={t('questions.choice')}
                                                     htmlFor={`choice-text-${index}`}

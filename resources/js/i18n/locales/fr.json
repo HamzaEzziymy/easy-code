@@ -208,6 +208,7 @@
         "choices": "Choix",
         "label": "Libellé",
         "removeLabel": "Retirer le Libellé",
+        "addLabel": "Ajouter un libellé",
         "choice": "Choix",
         "correct": "Correcte",
         "time": "Temps",

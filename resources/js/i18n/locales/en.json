@@ -208,6 +208,7 @@
         "choices": "Choices",
         "label": "Label",
         "removeLabel": "Remove the label",
+        "addLabel": "Add a label",
         "choice": "Choice",
         "correct": "Correct",
         "time": "Time",
