@@ -15,8 +15,13 @@ import {
     FaXmark,
 } from 'react-icons/fa6';
 
-const fieldClass =
-    'mt-1.5 block w-full rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-800 outline-none transition placeholder:text-gray-400 focus:border-[#007BFF] focus:ring-2 focus:ring-[#007BFF]/20 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:placeholder:text-gray-500';
+const fieldBase =
+    'mt-1.5 block w-full rounded-xl border border-gray-300 bg-white px-3.5 py-3 text-gray-800 outline-none transition placeholder:text-gray-400 focus:border-[#007BFF] focus:ring-2 focus:ring-[#007BFF]/20 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:placeholder:text-gray-500';
+
+const fieldClass = `${fieldBase} text-base`;
+
+/** The wording is what gets read on the exam slide, so it is typed at the size it is shown at. */
+const areaClass = `${fieldBase} text-lg leading-relaxed`;
 
 const panel =
     'rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800';
@@ -26,20 +31,31 @@ const KEYS = ['A', 'B', 'C', 'D'];
 
 const SLOTS = ['image_ar', 'image_fr', 'audio_ar', 'audio_fr'];
 
-function Field({ label, htmlFor, hint, error, required, children }) {
+/** The form fields are named after the columns; the page hands the saved files back in camelCase. */
+const MEDIA_PROPS = {
+    image_ar: 'imageAr',
+    image_fr: 'imageFr',
+    audio_ar: 'audioAr',
+    audio_fr: 'audioFr',
+};
+
+function Field({ label, htmlFor, hint, error, required, action, children }) {
     return (
         <div>
-            <label htmlFor={htmlFor} className="block text-sm font-medium text-gray-700 dark:text-gray-200">
-                {label}
-                {required && (
-                    <span className="ms-1 text-[#FF9800]" aria-hidden>
-                        *
-                    </span>
-                )}
-            </label>
+            <div className="flex items-center justify-between gap-x-2">
+                <label htmlFor={htmlFor} className="block text-base font-medium text-gray-700 dark:text-gray-200">
+                    {label}
+                    {required && (
+                        <span className="ms-1 text-[#FF9800]" aria-hidden>
+                            *
+                        </span>
+                    )}
+                </label>
+                {action}
+            </div>
             {children}
             <InputError className="mt-1.5" message={error} />
-            {hint && <p className="mt-1.5 text-xs text-gray-600 dark:text-gray-400">{hint}</p>}
+            {hint && <p className="mt-1.5 text-sm text-gray-600 dark:text-gray-400">{hint}</p>}
         </div>
     );
 }
@@ -54,7 +70,7 @@ export default function Form({ question, categories }) {
     const rtl = lang === 'ar';
 
     const [previews, setPreviews] = useState(() =>
-        Object.fromEntries(SLOTS.map((slot) => [slot, isEdit ? question.media[slot] : null])),
+        Object.fromEntries(SLOTS.map((slot) => [slot, question?.media?.[MEDIA_PROPS[slot]] ?? null])),
     );
 
     const form = useForm({
@@ -90,18 +106,33 @@ export default function Form({ question, categories }) {
 
     const title = isEdit ? `${t('questions.editTitle')} #${question.id}` : t('questions.createTitle');
 
+    // Every write rebuilds from the state the previous write left behind, never from the snapshot
+    // this render closed over, so two clicks in a row both land.
     const setOption = (index, locale, value) =>
-        form.setData('options', form.data.options.map((option, i) => (i === index ? { ...option, [locale]: value } : option)));
+        form.setData((data) => ({
+            ...data,
+            options: data.options.map((option, i) => (i === index ? { ...option, [locale]: value } : option)),
+        }));
+
+    // A label fronts the choice, not one language: clearing both stops the other one being copied
+    // back over it when the question is saved.
+    const clearLabel = (index) =>
+        form.setData((data) => ({
+            ...data,
+            options: data.options.map((option, i) =>
+                i === index ? { ...option, prefix_fr: '', prefix_ar: '' } : option,
+            ),
+        }));
 
     const isChecked = (index) => form.data.correct.includes(index);
 
     const toggleCorrect = (index) =>
-        form.setData(
-            'correct',
-            isChecked(index)
-                ? form.data.correct.filter((value) => value !== index)
-                : [...form.data.correct, index].sort((a, b) => a - b),
-        );
+        form.setData((data) => ({
+            ...data,
+            correct: data.correct.includes(index)
+                ? data.correct.filter((value) => value !== index)
+                : [...data.correct, index].sort((a, b) => a - b),
+        }));
 
     const pickMedia = (slot, event) => {
         const file = event.target.files?.[0] ?? null;
@@ -110,7 +141,7 @@ export default function Form({ question, categories }) {
         form.setData(`remove_${slot}`, false);
         setPreviews((current) => ({
             ...current,
-            [slot]: file ? URL.createObjectURL(file) : isEdit ? question.media[slot] : null,
+            [slot]: file ? URL.createObjectURL(file) : (question?.media?.[MEDIA_PROPS[slot]] ?? null),
         }));
         event.target.value = '';
     };
@@ -155,7 +186,7 @@ export default function Form({ question, categories }) {
                             <audio src={preview} controls className="w-full" />
                         )
                     ) : (
-                        <p className="px-3 text-center text-xs text-gray-600 dark:text-gray-400">
+                        <p className="px-3 text-center text-sm text-gray-600 dark:text-gray-400">
                             {kind === 'image' ? t('questions.previewNoImage') : t('questions.chooseAudio')}
                         </p>
                     )}
@@ -163,7 +194,7 @@ export default function Form({ question, categories }) {
 
                 <div className="mt-2 flex items-center gap-x-2">
                     <label
-                        className={`inline-flex flex-1 cursor-pointer items-center justify-center gap-x-2 rounded-xl border px-3 py-2 text-xs font-medium transition-colors ${
+                        className={`inline-flex flex-1 cursor-pointer items-center justify-center gap-x-2 rounded-xl border px-3 py-2.5 text-sm font-medium transition-colors ${
                             preview
                                 ? 'border-gray-300 bg-white text-gray-700 hover:border-[#007BFF] hover:text-[#007BFF] dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200'
                                 : 'border-[#007BFF] bg-[#007BFF] text-white hover:bg-[#0068d6]'
@@ -202,6 +233,19 @@ export default function Form({ question, categories }) {
 
     const filled = (locale) => form.data[`question_${locale}`].trim() !== '';
 
+    /** Emptying a field with one click, instead of selecting its text and deleting it. */
+    const clearButton = (onClick, title) => (
+        <button
+            type="button"
+            onClick={onClick}
+            title={title}
+            aria-label={title}
+            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-gray-300 text-gray-500 transition-colors hover:border-red-300 hover:bg-red-50 hover:text-red-600 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-red-500/20"
+        >
+            <FaXmark size={12} />
+        </button>
+    );
+
     return (
         <AuthenticatedLayout
             header={
@@ -224,7 +268,7 @@ export default function Form({ question, categories }) {
                             </p>
                         </div>
                     </div>
-                    <p className="text-xs text-gray-600 dark:text-gray-400">
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
                         <span className="me-1 text-[#FF9800]">*</span>
                         {t('questions.requiredLegend')}
                     </p>
@@ -242,7 +286,7 @@ export default function Form({ question, categories }) {
                                     key={locale}
                                     type="button"
                                     onClick={() => setLang(locale)}
-                                    className={`relative rounded-[10px] px-5 py-2 text-sm font-semibold uppercase tracking-wide transition-colors ${
+                                    className={`relative rounded-[10px] px-6 py-2.5 text-base font-semibold uppercase tracking-wide transition-colors ${
                                         lang === locale
                                             ? 'bg-[#007BFF] text-white'
                                             : 'text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-100'
@@ -260,21 +304,21 @@ export default function Form({ question, categories }) {
                                 </button>
                             ))}
                         </div>
-                        <p className="text-xs text-gray-600 dark:text-gray-400">{t('questions.langHelp')}</p>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">{t('questions.langHelp')}</p>
                     </div>
 
                     {/* The same sheet the trainee sees: picture, then the wording under it, then the answers. */}
                     <section className={`${panel} overflow-hidden`}>
                         <div className="space-y-4 border-b border-gray-200 p-4 sm:p-5 dark:border-gray-700">
                             <div>
-                                <h3 className="mb-2 flex items-center gap-x-2 text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">
+                                <h3 className="mb-2 flex items-center gap-x-2 text-sm font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">
                                     <FaImage size={12} className="text-[#007BFF] dark:text-[#00AEEF]" />
                                     {t('questions.image')} · {t(`questions.lang.${lang}`)}
                                 </h3>
                                 {mediaBox(`image_${lang}`, 'image')}
                             </div>
                             <div>
-                                <h3 className="mb-2 flex items-center gap-x-2 text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">
+                                <h3 className="mb-2 flex items-center gap-x-2 text-sm font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">
                                     <FaVolumeHigh size={12} className="text-[#007BFF] dark:text-[#00AEEF]" />
                                     {t('questions.audio')} · {t(`questions.lang.${lang}`)}
                                 </h3>
@@ -288,49 +332,39 @@ export default function Form({ question, categories }) {
                                 htmlFor={`question-${lang}`}
                                 required
                                 error={form.errors[`question_${lang}`]}
+                                action={
+                                    filled(lang)
+                                        ? clearButton(() => form.setData(`question_${lang}`, ''), t('questions.clear'))
+                                        : null
+                                }
                             >
                                 <textarea
                                     id={`question-${lang}`}
                                     dir={rtl ? 'rtl' : 'ltr'}
-                                    rows={3}
-                                    className={fieldClass}
+                                    rows={4}
+                                    className={areaClass}
                                     value={form.data[`question_${lang}`]}
                                     onChange={(event) => form.setData(`question_${lang}`, event.target.value)}
                                 />
                             </Field>
 
                             <div>
-                                <h3 className="flex items-center gap-x-2 text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">
+                                <h3 className="flex items-center gap-x-2 text-sm font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">
                                     {t('questions.choicesSection')}
                                 </h3>
-                                <p className="mt-1 text-xs text-gray-600 dark:text-gray-400">
+                                <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
                                     {t('questions.choicesHelp')} {t('questions.correctHint')}
                                 </p>
 
                                 <div className="mt-3 space-y-3">
                                     {form.data.options.map((option, index) => (
-                                        <div key={index} className="flex items-center gap-x-3">
-                                            <button
-                                                type="button"
-                                                onClick={() => toggleCorrect(index)}
-                                                aria-pressed={isChecked(index)}
-                                                title={t('questions.correct')}
-                                                aria-label={`${t('questions.correct')} ${index + 1}`}
-                                                dir="ltr"
-                                                className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 text-sm font-semibold tabular-nums transition-colors ${
-                                                    isChecked(index)
-                                                        ? 'border-emerald-500 bg-emerald-500 text-white'
-                                                        : 'border-gray-300 bg-white text-gray-500 hover:border-[#007BFF] hover:text-[#007BFF] dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300'
-                                                }`}
-                                            >
-                                                {index + 1}
-                                            </button>
-
+                                        <div key={index} className="flex items-end gap-x-3">
                                             <div className="min-w-0 flex-1 space-y-2">
                                                 <Field
                                                     label={t('questions.label')}
                                                     htmlFor={`choice-label-${index}`}
                                                     error={form.errors[`options.${index}.prefix_${lang}`]}
+                                                    action={clearButton(() => clearLabel(index), t('questions.removeLabel'))}
                                                 >
                                                     <textarea
                                                         id={`choice-label-${index}`}
@@ -361,6 +395,22 @@ export default function Form({ question, categories }) {
                                                     />
                                                 </Field>
                                             </div>
+
+                                            <button
+                                                type="button"
+                                                onClick={() => toggleCorrect(index)}
+                                                aria-pressed={isChecked(index)}
+                                                title={t('questions.correct')}
+                                                aria-label={`${t('questions.correct')} ${index + 1}`}
+                                                dir="ltr"
+                                                className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-2 text-base font-semibold tabular-nums transition-colors ${
+                                                    isChecked(index)
+                                                        ? 'border-emerald-500 bg-emerald-500 text-white'
+                                                        : 'border-gray-300 bg-white text-gray-500 hover:border-[#007BFF] hover:text-[#007BFF] dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300'
+                                                }`}
+                                            >
+                                                {index + 1}
+                                            </button>
                                         </div>
                                     ))}
                                 </div>
@@ -370,7 +420,7 @@ export default function Form({ question, categories }) {
                                 {form.errors['correct.0'] && (
                                     <InputError className="mt-1" message={form.errors['correct.0']} />
                                 )}
-                                <p className="mt-2 text-xs text-gray-600 dark:text-gray-400">
+                                <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
                                     {t('questions.correctCount', { count: form.data.correct.length })}
                                 </p>
                             </div>
@@ -378,7 +428,7 @@ export default function Form({ question, categories }) {
                     </section>
 
                     <section className={`${panel} p-4 sm:p-5`}>
-                        <h3 className="flex items-center gap-x-2 text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">
+                        <h3 className="flex items-center gap-x-2 text-sm font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">
                             <FaGear size={12} className="text-[#007BFF] dark:text-[#00AEEF]" />
                             {t('questions.settingsSection')}
                         </h3>
@@ -429,7 +479,7 @@ export default function Form({ question, categories }) {
                                             )
                                         }
                                     />
-                                    <span className="pointer-events-none absolute inset-y-0 end-3 flex items-center text-xs font-medium text-gray-600 dark:text-gray-400">
+                                    <span className="pointer-events-none absolute inset-y-0 end-3 flex items-center text-sm font-medium text-gray-600 dark:text-gray-400">
                                         {t('questions.seconds')}
                                     </span>
                                 </div>

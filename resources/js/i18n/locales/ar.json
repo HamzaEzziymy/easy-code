@@ -207,6 +207,7 @@
         "category": "الصنف",
         "choices": "الاختيارات",
         "label": "التسمية",
+        "removeLabel": "إزالة التسمية",
         "choice": "الخيار",
         "correct": "صحيح",
         "time": "الوقت",

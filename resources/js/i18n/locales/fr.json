@@ -207,6 +207,7 @@
         "category": "Catégorie",
         "choices": "Choix",
         "label": "Libellé",
+        "removeLabel": "Retirer le Libellé",
         "choice": "Choix",
         "correct": "Correcte",
         "time": "Temps",

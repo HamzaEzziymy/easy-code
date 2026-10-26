@@ -207,6 +207,7 @@
         "category": "Category",
         "choices": "Choices",
         "label": "Label",
+        "removeLabel": "Remove the label",
         "choice": "Choice",
         "correct": "Correct",
         "time": "Time",
