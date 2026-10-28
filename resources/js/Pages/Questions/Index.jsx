@@ -271,29 +271,28 @@ export default function Index({ questions, filters, stats, categories }) {
 
                     <div className={`${panel} overflow-hidden`}>
                         <div className="overflow-x-auto">
-                            <table className="w-full min-w-[900px] text-start text-sm">
+                            <table className="w-full min-w-[700px] text-start text-sm">
                                 <thead>
-                                    <tr className="bg-gray-50 text-start dark:bg-gray-900/40">
-                                        <th className={`${cell} ps-4 text-start`}>{t('questions.question')}</th>
-                                        <th className={`${cell} text-start`}>{t('questions.category')}</th>
-                                        <th className={`${cell} text-start`}>{t('questions.choices')}</th>
-                                        <th className={`${cell} text-start`}>{t('questions.time')}</th>
-                                        <th className={`${cell} text-start`}>{t('questions.media')}</th>
-                                        <th className={`${cell} pe-4 text-end`}>{t('questions.actions')}</th>
+                                    <tr className="border-b border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-900/40">
+                                        <th className="py-3 ps-5 pe-3 text-start text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                                            {t('questions.category')}
+                                        </th>
+                                        <th className="py-3 px-3 text-start text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                                            {t('questions.choices')}
+                                        </th>
+                                        <th className="py-3 px-3 text-start text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                                            {t('questions.time')}
+                                        </th>
+                                        <th className="py-3 px-3 text-start text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                                            {t('questions.media')}
+                                        </th>
+                                        <th className="py-3 ps-3 pe-5 text-end text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                                            {t('questions.actions')}
+                                        </th>
                                     </tr>
                                 </thead>
-                                <tbody>
+                                <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                                     {questions.data.map((question) => {
-                                        const primary = inLanguage(
-                                            rtl,
-                                            question.textAr,
-                                            question.textFr,
-                                        );
-                                        const secondary = otherLanguage(
-                                            rtl,
-                                            question.textAr,
-                                            question.textFr,
-                                        );
                                         const images = [question.media.imageAr, question.media.imageFr].filter(
                                             Boolean,
                                         ).length;
@@ -304,141 +303,124 @@ export default function Index({ questions, filters, stats, categories }) {
                                         return (
                                             <tr
                                                 key={question.id}
-                                                className="transition-colors hover:bg-gray-50/80 dark:hover:bg-gray-700/30"
+                                                className="group transition-colors hover:bg-blue-50/40 dark:hover:bg-blue-500/5"
                                             >
-                                                <td className={`${cell} ps-4`}>
-                                                    <Link href={route('questions.edit', question.id)} className="block">
-                                                        <span
-                                                            dir={rtl ? 'rtl' : 'ltr'}
-                                                            className="block truncate font-semibold text-gray-900 dark:text-gray-100"
-                                                        >
-                                                            {opening(primary)}
-                                                        </span>
-                                                        {secondary && (
-                                                            <span
-                                                                dir={rtl ? 'ltr' : 'rtl'}
-                                                                className="mt-0.5 block truncate text-xs text-gray-600 dark:text-gray-400"
-                                                            >
-                                                                {opening(secondary)}
-                                                            </span>
-                                                        )}
-                                                    </Link>
-                                                    <span className="mt-1 block text-xs text-gray-600 dark:text-gray-400">
-                                                        #{question.id} · {question.createdAt}
-                                                    </span>
-                                                </td>
-                                                <td className={cell}>
+                                                {/* Category — code badge + name on one line */}
+                                                <td className="py-3 ps-5 pe-3 align-middle">
                                                     {question.categoryCode ? (
                                                         <div className="flex items-center gap-x-2">
                                                             <span
                                                                 dir="ltr"
-                                                                className="rounded-lg bg-gray-100 px-2 py-1 font-mono text-xs font-semibold text-gray-700 dark:bg-gray-700 dark:text-gray-200"
+                                                                className="shrink-0 rounded-md bg-[#007BFF]/10 px-2 py-0.5 font-mono text-xs font-bold text-[#007BFF] dark:bg-[#007BFF]/20 dark:text-[#7EB8F5]"
                                                             >
                                                                 {question.categoryCode}
                                                             </span>
                                                             <span
                                                                 dir={rtl ? 'rtl' : 'ltr'}
-                                                                className="truncate text-gray-700 dark:text-gray-300"
+                                                                className="truncate text-sm text-gray-700 dark:text-gray-300"
                                                             >
-                                                                {inLanguage(
-                                                                    rtl,
-                                                                    question.categoryAr,
-                                                                    question.categoryFr,
-                                                                )}
+                                                                {inLanguage(rtl, question.categoryAr, question.categoryFr)}
                                                             </span>
                                                         </div>
                                                     ) : (
-                                                        <span className="text-gray-400">
+                                                        <span className="text-xs text-gray-400 dark:text-gray-500">
                                                             {t('questions.noCategory')}
                                                         </span>
                                                     )}
                                                 </td>
-                                                <td className={cell}>
-                                                    <div className="flex flex-wrap gap-1.5">
-                                                        {[0, 1, 2, 3].map((slotIndex) => {
-                                                            const choice = question.choices[slotIndex];
-                                                            return (
-                                                                <span
-                                                                    key={slotIndex}
-                                                                    dir="ltr"
-                                                                    title={choice ? inLanguage(rtl, choice.ar, choice.fr) : ''}
-                                                                    className={`inline-flex h-7 w-7 items-center justify-center rounded-lg text-xs font-bold tabular-nums ${
-                                                                        choice?.correct
-                                                                            ? 'bg-emerald-500 text-white'
-                                                                            : choice
-                                                                              ? 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-300'
-                                                                              : 'bg-gray-50 text-gray-300 dark:bg-gray-800 dark:text-gray-600'
-                                                                    }`}
-                                                                >
-                                                                    {slotIndex + 1}
-                                                                </span>
-                                                            );
-                                                        })}
+
+                                                {/* Choices — badges + single/multiple tag on one line */}
+                                                <td className="py-3 px-3 align-middle">
+                                                    <div className="flex items-center gap-x-2">
+                                                        <div className="flex gap-x-1">
+                                                            {[0, 1, 2, 3].map((slotIndex) => {
+                                                                const choice = question.choices[slotIndex];
+                                                                return (
+                                                                    <span
+                                                                        key={slotIndex}
+                                                                        dir="ltr"
+                                                                        title={choice ? inLanguage(rtl, choice.ar, choice.fr) : ''}
+                                                                        className={`inline-flex h-7 w-7 items-center justify-center rounded-full border-2 text-xs font-bold tabular-nums ${
+                                                                            choice?.correct
+                                                                                ? 'border-emerald-500 bg-emerald-500 text-white'
+                                                                                : choice
+                                                                                  ? 'border-gray-300 bg-white text-gray-600 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300'
+                                                                                  : 'border-dashed border-gray-200 bg-transparent text-gray-300 dark:border-gray-700 dark:text-gray-600'
+                                                                        }`}
+                                                                    >
+                                                                        {slotIndex + 1}
+                                                                    </span>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                        <span className="text-xs text-gray-400 dark:text-gray-500">
+                                                            {question.multiple ? t('questions.multiple') : t('questions.single')}
+                                                        </span>
                                                     </div>
-                                                    <span className="mt-1 block text-xs text-gray-600 dark:text-gray-400">
-                                                        {question.multiple
-                                                            ? t('questions.multiple')
-                                                            : t('questions.single')}
-                                                    </span>
                                                 </td>
-                                                <td className={cell}>
-                                                    <span dir="ltr" className="font-mono tabular-nums">
-                                                        {question.timeSeconds ?? '—'}
-                                                        <span className="ms-0.5 text-xs text-gray-500">
+
+                                                {/* Time — number + suffix on one line */}
+                                                <td className="py-3 px-3 align-middle">
+                                                    <span dir="ltr" className="inline-flex items-baseline gap-x-0.5 font-mono tabular-nums">
+                                                        <span className="text-sm font-semibold text-gray-800 dark:text-gray-100">
+                                                            {question.timeSeconds ?? '—'}
+                                                        </span>
+                                                        <span className="text-xs text-gray-400 dark:text-gray-500">
                                                             {t('questions.seconds')}
                                                         </span>
                                                     </span>
                                                 </td>
-                                                <td className={cell}>
-                                                    <div className="flex items-center gap-x-3 text-gray-500 dark:text-gray-400">
-                                                        {images > 0 ? (
-                                                            <span className="inline-flex items-center gap-x-1">
-                                                                <FaImage size={13} />
-                                                                <span className="text-xs font-semibold tabular-nums">
+
+                                                {/* Media — icon badges on one line */}
+                                                <td className="py-3 px-3 align-middle">
+                                                    {images === 0 && audios === 0 ? (
+                                                        <span className="text-gray-300 dark:text-gray-600">—</span>
+                                                    ) : (
+                                                        <div className="flex items-center gap-x-2">
+                                                            {images > 0 && (
+                                                                <span className="inline-flex items-center gap-x-1 rounded-lg bg-gray-100 px-2 py-1 text-xs font-semibold text-gray-600 dark:bg-gray-700 dark:text-gray-300">
+                                                                    <FaImage size={11} />
                                                                     {images}
                                                                 </span>
-                                                            </span>
-                                                        ) : null}
-                                                        {audios > 0 ? (
-                                                            <span className="inline-flex items-center gap-x-1">
-                                                                <FaVolumeHigh size={13} />
-                                                                <span className="text-xs font-semibold tabular-nums">
+                                                            )}
+                                                            {audios > 0 && (
+                                                                <span className="inline-flex items-center gap-x-1 rounded-lg bg-gray-100 px-2 py-1 text-xs font-semibold text-gray-600 dark:bg-gray-700 dark:text-gray-300">
+                                                                    <FaVolumeHigh size={11} />
                                                                     {audios}
                                                                 </span>
-                                                            </span>
-                                                        ) : null}
-                                                        {images === 0 && audios === 0 && (
-                                                            <span className="text-gray-400">—</span>
-                                                        )}
-                                                    </div>
+                                                            )}
+                                                        </div>
+                                                    )}
                                                 </td>
-                                                <td className={`${cell} pe-4`}>
+
+                                                {/* Actions */}
+                                                <td className="py-3 ps-3 pe-5 align-middle">
                                                     <div className="flex items-center justify-end gap-x-1">
                                                         <button
                                                             type="button"
                                                             onClick={() => setPreview(question)}
                                                             title={t('questions.preview')}
                                                             aria-label={t('questions.preview')}
-                                                            className="rounded-xl p-2 text-gray-400 transition-colors hover:bg-blue-50 hover:text-[#007BFF] dark:hover:bg-blue-500/10 dark:hover:text-[#7EB8F5]"
+                                                            className="rounded-lg p-2 text-gray-400 transition-colors hover:bg-blue-50 hover:text-[#007BFF] dark:hover:bg-blue-500/10 dark:hover:text-[#7EB8F5]"
                                                         >
-                                                            <FaEye size={14} />
+                                                            <FaEye size={15} />
                                                         </button>
                                                         <Link
                                                             href={route('questions.edit', question.id)}
                                                             title={t('questions.edit')}
                                                             aria-label={t('questions.edit')}
-                                                            className="rounded-xl p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-700 dark:hover:text-gray-200"
+                                                            className="rounded-lg p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-700 dark:hover:text-gray-200"
                                                         >
-                                                            <FaEdit size={14} />
+                                                            <FaEdit size={15} />
                                                         </Link>
                                                         <button
                                                             type="button"
                                                             onClick={() => setDeleting(question)}
                                                             title={t('questions.delete')}
                                                             aria-label={t('questions.delete')}
-                                                            className="rounded-xl p-2 text-gray-400 transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-500/10 dark:hover:text-red-300"
+                                                            className="rounded-lg p-2 text-gray-400 transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-500/10 dark:hover:text-red-300"
                                                         >
-                                                            <FaTrash size={14} />
+                                                            <FaTrash size={15} />
                                                         </button>
                                                     </div>
                                                 </td>
@@ -465,7 +447,7 @@ export default function Index({ questions, filters, stats, categories }) {
                         </div>
 
                         {questions.last_page > 1 && (
-                            <nav className="flex flex-wrap items-center justify-center gap-x-1 pt-1">
+                            <nav className="flex flex-wrap items-center justify-center gap-x-1 py-4">
                                 {questions.links.map((link, index) =>
                                     link.url === null ? (
                                         <span
