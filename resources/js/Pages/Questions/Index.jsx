@@ -355,20 +355,25 @@ export default function Index({ questions, filters, stats, categories }) {
                                                 </td>
                                                 <td className={cell}>
                                                     <div className="flex flex-wrap gap-1.5">
-                                                        {question.choices.map((choice, index) => (
-                                                            <span
-                                                                key={choice.key}
-                                                                dir="ltr"
-                                                                title={inLanguage(rtl, choice.ar, choice.fr)}
-                                                                className={`inline-flex h-7 w-7 items-center justify-center rounded-lg text-xs font-bold tabular-nums ${
-                                                                    choice.correct
-                                                                        ? 'bg-emerald-500 text-white'
-                                                                        : 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-300'
-                                                                }`}
-                                                            >
-                                                                {index + 1}
-                                                            </span>
-                                                        ))}
+                                                        {[0, 1, 2, 3].map((slotIndex) => {
+                                                            const choice = question.choices[slotIndex];
+                                                            return (
+                                                                <span
+                                                                    key={slotIndex}
+                                                                    dir="ltr"
+                                                                    title={choice ? inLanguage(rtl, choice.ar, choice.fr) : ''}
+                                                                    className={`inline-flex h-7 w-7 items-center justify-center rounded-lg text-xs font-bold tabular-nums ${
+                                                                        choice?.correct
+                                                                            ? 'bg-emerald-500 text-white'
+                                                                            : choice
+                                                                              ? 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-300'
+                                                                              : 'bg-gray-50 text-gray-300 dark:bg-gray-800 dark:text-gray-600'
+                                                                    }`}
+                                                                >
+                                                                    {slotIndex + 1}
+                                                                </span>
+                                                            );
+                                                        })}
                                                     </div>
                                                     <span className="mt-1 block text-xs text-gray-600 dark:text-gray-400">
                                                         {question.multiple

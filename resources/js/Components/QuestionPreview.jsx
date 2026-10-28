@@ -22,7 +22,7 @@ export default function QuestionPreview({ question, onClose }) {
     const { t, i18n } = useTranslation();
     const audio = useRef(null);
 
-    const [lang, setLang] = useState(() => (i18n.language?.startsWith('ar') ? 'ar' : 'fr'));
+    const [lang, setLang] = useState('ar');
     const [picked, setPicked] = useState([]);
     const [checked, setChecked] = useState(false);
     const [revealed, setRevealed] = useState(false);
@@ -106,11 +106,9 @@ export default function QuestionPreview({ question, onClose }) {
         }
         setChecked(false);
         setPicked((current) =>
-            question.multiple
-                ? current.includes(index)
-                    ? current.filter((value) => value !== index)
-                    : [...current, index].sort((a, b) => a - b)
-                : [index],
+            current.includes(index)
+                ? current.filter((value) => value !== index)
+                : [...current, index].sort((a, b) => a - b),
         );
     };
 
@@ -238,7 +236,7 @@ export default function QuestionPreview({ question, onClose }) {
 
                         <div dir={rtl ? 'rtl' : 'ltr'} className={sheetClass}>
                             <p
-                                className={`mt-0.5 text-base leading-snug font-semibold sm:text-lg ${
+                                className={`mt-0.5 text-2xl font-bold leading-relaxed sm:text-3xl ${
                                     expired
                                         ? 'text-gray-400 line-through dark:text-gray-500'
                                         : 'text-gray-900 dark:text-gray-100'
@@ -247,42 +245,32 @@ export default function QuestionPreview({ question, onClose }) {
                                 {text}
                             </p>
 
-                            <ol className="mt-3 space-y-1">
+                            <ol className="mt-6 space-y-4">
                                 {choices.map((choice, index) => (
-                                    <li key={choice.key}>
-                                        <button
-                                            type="button"
-                                            onClick={() => pick(index)}
-                                            disabled={expired}
-                                            className={`flex w-full items-start gap-x-3 rounded-lg px-2 py-1 text-start transition-colors disabled:cursor-not-allowed ${
-                                                picked.includes(index)
-                                                    ? 'bg-blue-50 dark:bg-[#007BFF]/15'
-                                                    : 'hover:bg-gray-50 dark:hover:bg-gray-700/40'
-                                            }`}
-                                        >
-                                            <span className="min-w-0 flex-1">
-                                                {prefix(choice) && (
-                                                    <span className="block font-mono text-xs leading-snug text-gray-500 dark:text-gray-400">
-                                                        {prefix(choice)}
-                                                    </span>
-                                                )}
-                                                <span
-                                                    className={`block text-base leading-snug font-medium ${
-                                                        picked.includes(index)
-                                                            ? 'text-[#007BFF] dark:text-[#7EB8F5]'
-                                                            : 'text-gray-800 dark:text-gray-100'
-                                                    }`}
-                                                >
-                                                    {label(choice)}
-                                                </span>
+                                    <li key={choice.key ?? index} className="space-y-1">
+                                        {prefix(choice) && (
+                                            <span className="block text-lg font-semibold text-gray-500 dark:text-gray-400">
+                                                {prefix(choice)}
                                             </span>
+                                        )}
+                                        <div className="flex min-w-0 items-end gap-x-2">
+                                            <span
+                                                className={`shrink-0 text-xl font-medium leading-tight ${
+                                                    expired
+                                                        ? 'text-gray-400 line-through dark:text-gray-500'
+                                                        : 'text-gray-800 dark:text-gray-100'
+                                                }`}
+                                            >
+                                                {label(choice)}
+                                            </span>
+                                            <span className="mb-1 min-w-0 flex-1 border-b-2 border-dotted border-gray-300 dark:border-gray-600" />
                                             <span
                                                 dir="ltr"
-                                                className="shrink-0 font-mono text-sm text-gray-500 tabular-nums dark:text-gray-400"
+                                                className="shrink-0 font-mono text-xl font-bold tabular-nums text-gray-600 dark:text-gray-300"
                                             >
                                                 {index + 1}
                                             </span>
-                                        </button>
+                                        </div>
                                     </li>
                                 ))}
                             </ol>
@@ -327,15 +315,15 @@ export default function QuestionPreview({ question, onClose }) {
                         </div>
 
                         <div className="mt-4 grid grid-cols-4 gap-2 lg:mt-5 lg:grid-cols-1 lg:gap-3">
-                            {choices.map((choice, index) => (
+                            {[...Array(4)].map((_, index) => (
                                 <button
-                                    key={choice.key}
+                                    key={index}
                                     type="button"
                                     onClick={() => pick(index)}
                                     disabled={expired}
                                     aria-pressed={picked.includes(index)}
-                                    aria-label={label(choice)}
-                                    title={label(choice)}
+                                    aria-label={choices[index] ? label(choices[index]) : `${index + 1}`}
+                                    title={choices[index] ? label(choices[index]) : `${index + 1}`}
                                     className={`flex aspect-square w-full items-center justify-center rounded-full border-2 text-lg font-semibold tabular-nums transition-colors disabled:opacity-50 lg:aspect-auto lg:py-3 ${tone(index)}`}
                                 >
                                     {index + 1}

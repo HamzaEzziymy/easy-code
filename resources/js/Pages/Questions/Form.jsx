@@ -67,16 +67,24 @@ export default function Form({ question, categories }) {
     const uiRtl = i18n.language?.startsWith('ar');
 
     // A question is written one language at a time, the way the trainee reads it.
-    const [lang, setLang] = useState(() => (i18n.language?.startsWith('ar') ? 'ar' : 'fr'));
+    const [lang, setLang] = useState('ar');
     const rtl = lang === 'ar';
 
     const [previews, setPreviews] = useState(() =>
         Object.fromEntries(SLOTS.map((slot) => [slot, question?.media?.[MEDIA_PROPS[slot]] ?? null])),
     );
 
-    // Tracks which choice label rows the user has dismissed (by index).
-    // A dismissed row is hidden and its prefix fields are cleared.
-    const [hiddenLabels, setHiddenLabels] = useState(() => new Set());
+    // Labels are hidden by default; the user clicks + to reveal them.
+    // When editing, keep labels visible for choices that already have prefix text.
+    const [hiddenLabels, setHiddenLabels] = useState(() => {
+        const hidden = new Set();
+        KEYS.forEach((_, i) => {
+            const choice = question?.choices?.find((c) => c.key === KEYS[i]);
+            const hasLabel = choice?.prefixFr || choice?.prefixAr;
+            if (!hasLabel) hidden.add(i);
+        });
+        return hidden;
+    });
 
     const form = useForm({
         question_fr: question?.textFr ?? '',
@@ -98,7 +106,7 @@ export default function Form({ question, categories }) {
                   .filter((choice) => choice.correct)
                   .map((choice) => KEYS.indexOf(choice.key))
                   .filter((index) => index >= 0)
-            : [0],
+            : [],
         image_ar: null,
         image_fr: null,
         audio_ar: null,
@@ -282,10 +290,6 @@ export default function Form({ question, categories }) {
                             </p>
                         </div>
                     </div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                        <span className="me-1 text-[#FF9800]">*</span>
-                        {t('questions.requiredLegend')}
-                    </p>
                 </div>
             }
         >
@@ -318,7 +322,6 @@ export default function Form({ question, categories }) {
                                 </button>
                             ))}
                         </div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">{t('questions.langHelp')}</p>
                     </div>
 
                     {/* The same sheet the trainee sees: picture, then the wording under it, then the answers. */}
@@ -355,7 +358,7 @@ export default function Form({ question, categories }) {
                                 <textarea
                                     id={`question-${lang}`}
                                     dir={rtl ? 'rtl' : 'ltr'}
-                                    rows={4}
+                                    rows={3}
                                     className={areaClass}
                                     value={form.data[`question_${lang}`]}
                                     onChange={(event) => form.setData(`question_${lang}`, event.target.value)}
@@ -363,86 +366,81 @@ export default function Form({ question, categories }) {
                             </Field>
 
                             <div>
-                                <h3 className="flex items-center gap-x-2 text-sm font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">
-                                    {t('questions.choicesSection')}
-                                </h3>
-                                <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-                                    {t('questions.choicesHelp')} {t('questions.correctHint')}
-                                </p>
 
                                 <div className="mt-3 space-y-3">
                                     {form.data.options.map((option, index) => (
-                                        <div key={index} className="flex items-end gap-x-3">
-                                            <div className="min-w-0 flex-1 space-y-2">
-                                                {hiddenLabels.has(index) ? (
-                                                    /* Label row removed — show a restore button instead */
-                                                    <div className="flex items-center gap-x-2">
-                                                        <span className="text-sm text-gray-400 dark:text-gray-500">
-                                                            {t('questions.label')}
-                                                        </span>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => restoreLabel(index)}
-                                                            title={t('questions.addLabel')}
-                                                            aria-label={t('questions.addLabel')}
-                                                            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-gray-300 text-gray-400 transition-colors hover:border-[#007BFF] hover:bg-blue-50 hover:text-[#007BFF] dark:border-gray-600 dark:text-gray-500 dark:hover:bg-blue-500/10 dark:hover:text-[#7EB8F5]"
-                                                        >
-                                                            <FaPlus size={10} />
-                                                        </button>
-                                                    </div>
-                                                ) : (
-                                                    <Field
-                                                        label={t('questions.label')}
-                                                        htmlFor={`choice-label-${index}`}
-                                                        error={form.errors[`options.${index}.prefix_${lang}`]}
-                                                        action={clearButton(() => clearLabel(index), t('questions.removeLabel'))}
+                                        <div key={index} className="space-y-2">
+                                            {/* Label row — hidden by default, shown when user clicks + */}
+                                            {hiddenLabels.has(index) ? (
+                                                <div className="flex items-center gap-x-2">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => restoreLabel(index)}
+                                                        title={t('questions.addLabel')}
+                                                        aria-label={t('questions.addLabel')}
+                                                        className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-dashed border-gray-300 text-gray-400 transition-colors hover:border-[#007BFF] hover:bg-blue-50 hover:text-[#007BFF] dark:border-gray-600 dark:text-gray-500 dark:hover:bg-blue-500/10 dark:hover:text-[#7EB8F5]"
                                                     >
-                                                        <textarea
-                                                            id={`choice-label-${index}`}
-                                                            dir={rtl ? 'rtl' : 'ltr'}
-                                                            rows={2}
-                                                            maxLength={60}
-                                                            placeholder="a)"
-                                                            value={option[`prefix_${lang}`]}
-                                                            onChange={(event) =>
-                                                                setOption(index, `prefix_${lang}`, event.target.value)
-                                                            }
-                                                            className={fieldClass}
-                                                        />
-                                                    </Field>
-                                                )}
+                                                        <FaPlus size={9} />
+                                                    </button>
+                                                    <span className="text-xs text-gray-400 dark:text-gray-500">
+                                                        {t('questions.addLabel')}
+                                                    </span>
+                                                </div>
+                                            ) : (
                                                 <Field
-                                                    label={t('questions.choice')}
-                                                    htmlFor={`choice-text-${index}`}
-                                                    required={index < 2}
-                                                    error={form.errors[`options.${index}.${lang}`]}
+                                                    label={t('questions.label')}
+                                                    htmlFor={`choice-label-${index}`}
+                                                    error={form.errors[`options.${index}.prefix_${lang}`]}
+                                                    action={clearButton(() => clearLabel(index), t('questions.removeLabel'))}
                                                 >
-                                                    <input
-                                                        id={`choice-text-${index}`}
+                                                    <textarea
+                                                        id={`choice-label-${index}`}
                                                         dir={rtl ? 'rtl' : 'ltr'}
-                                                        placeholder={t('questions.answer')}
-                                                        value={option[lang]}
-                                                        onChange={(event) => setOption(index, lang, event.target.value)}
+                                                        rows={2}
+                                                        maxLength={60}
+                                                        value={option[`prefix_${lang}`]}
+                                                        onChange={(event) =>
+                                                            setOption(index, `prefix_${lang}`, event.target.value)
+                                                        }
                                                         className={fieldClass}
                                                     />
                                                 </Field>
-                                            </div>
+                                            )}
 
-                                            <button
-                                                type="button"
-                                                onClick={() => toggleCorrect(index)}
-                                                aria-pressed={isChecked(index)}
-                                                title={t('questions.correct')}
-                                                aria-label={`${t('questions.correct')} ${index + 1}`}
-                                                dir="ltr"
-                                                className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-2 text-base font-semibold tabular-nums transition-colors ${
-                                                    isChecked(index)
-                                                        ? 'border-emerald-500 bg-emerald-500 text-white'
-                                                        : 'border-gray-300 bg-white text-gray-500 hover:border-[#007BFF] hover:text-[#007BFF] dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300'
-                                                }`}
-                                            >
-                                                {index + 1}
-                                            </button>
+                                            {/* Choice input with the correct button on its right */}
+                                            <div dir="ltr" className="flex items-end gap-x-3">
+                                                <div className="min-w-0 flex-1">
+                                                    <Field
+                                                        label={t('questions.choice')}
+                                                        htmlFor={`choice-text-${index}`}
+                                                        required={index < 2}
+                                                        error={form.errors[`options.${index}.${lang}`]}
+                                                    >
+                                                        <input
+                                                            id={`choice-text-${index}`}
+                                                            dir={rtl ? 'rtl' : 'ltr'}
+                                                            placeholder={t('questions.answer')}
+                                                            value={option[lang]}
+                                                            onChange={(event) => setOption(index, lang, event.target.value)}
+                                                            className={fieldClass}
+                                                        />
+                                                    </Field>
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => toggleCorrect(index)}
+                                                    aria-pressed={isChecked(index)}
+                                                    title={t('questions.correct')}
+                                                    aria-label={`${t('questions.correct')} ${index + 1}`}
+                                                    className={`mb-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-2 text-base font-semibold tabular-nums transition-colors ${
+                                                        isChecked(index)
+                                                            ? 'border-emerald-500 bg-emerald-500 text-white'
+                                                            : 'border-gray-300 bg-white text-gray-500 hover:border-[#007BFF] hover:text-[#007BFF] dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300'
+                                                    }`}
+                                                >
+                                                    {index + 1}
+                                                </button>
+                                            </div>
                                         </div>
                                     ))}
                                 </div>
@@ -474,7 +472,8 @@ export default function Form({ question, categories }) {
                             >
                                 <select
                                     id="question-category"
-                                    className={fieldClass}
+                                    dir={uiRtl ? 'rtl' : 'ltr'}
+                                    className={fieldClass+" pr-10"}
                                     value={form.data.license_category_id}
                                     onChange={(event) => form.setData('license_category_id', event.target.value)}
                                 >
@@ -496,13 +495,13 @@ export default function Form({ question, categories }) {
                                 hint={t('questions.timeHelp')}
                                 error={form.errors.time_limit_seconds}
                             >
-                                <div className="relative">
+                                <div className="relative" dir="ltr">
                                     <input
                                         id="question-time"
                                         dir="ltr"
                                         type="text"
                                         inputMode="numeric"
-                                        className={`${fieldClass} pe-14 font-mono tabular-nums`}
+                                        className={`${fieldClass} pr-14 font-mono tabular-nums`}
                                         value={form.data.time_limit_seconds}
                                         onChange={(event) =>
                                             form.setData(
@@ -511,7 +510,7 @@ export default function Form({ question, categories }) {
                                             )
                                         }
                                     />
-                                    <span className="pointer-events-none absolute inset-y-0 end-3 flex items-center text-sm font-medium text-gray-600 dark:text-gray-400">
+                                    <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-sm font-medium text-gray-600 dark:text-gray-400">
                                         {t('questions.seconds')}
                                     </span>
                                 </div>
