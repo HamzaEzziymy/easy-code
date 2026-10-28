@@ -304,21 +304,13 @@ export default function Form({ question, categories }) {
                                     key={locale}
                                     type="button"
                                     onClick={() => setLang(locale)}
-                                    className={`relative rounded-[10px] px-6 py-2.5 text-base font-semibold uppercase tracking-wide transition-colors ${
+                                    className={`rounded-[10px] px-6 py-2.5 text-base font-semibold uppercase tracking-wide transition-colors ${
                                         lang === locale
                                             ? 'bg-[#007BFF] text-white'
                                             : 'text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-100'
                                     }`}
                                 >
                                     {t(`questions.lang.${locale}`)}
-                                    {!filled(locale) && (
-                                        <span
-                                            className="absolute end-1.5 top-1.5 h-2 w-2 rounded-full bg-[#FF9800]"
-                                            title={t('questions.langEmpty', {
-                                                lang: t(`questions.lang.${locale}`),
-                                            })}
-                                        />
-                                    )}
                                 </button>
                             ))}
                         </div>
