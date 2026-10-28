@@ -13,6 +13,7 @@ class Question extends Model
         'license_category_id',
         'created_by',
         'question_type',
+        'question_format',
         'time_limit_seconds',
         'image_ar',
         'image_fr',

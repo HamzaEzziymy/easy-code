@@ -276,7 +276,19 @@
         "audio": "Audio",
         "langHelp": "One language is enough: the empty one copies the wording you typed.",
         "langEmpty": "Empty: {{lang}} copies the other language",
-        "correctHint": "Click a number to mark the right answer."
+        "correctHint": "Click a number to mark the right answer.",
+        "chooseType": "Question type",
+        "chooseTypeHelp": "Choose the type of question you want to create",
+        "typeTextTitle": "Text question",
+        "typeTextDesc": "Write the question and choices in Arabic and French, with optional image and audio",
+        "typeImageTitle": "Image question",
+        "typeImageDesc": "Upload an image containing the full question and choices, then just mark the correct answer",
+        "selectType": "Choose this type",
+        "createImageTitle": "Create image question",
+        "createImageHelp": "Upload the question image, mark the correct answer, select category and time",
+        "questionImage": "Question image",
+        "correctAnswers": "Correct answer",
+        "correctAnswersHelp": "Click one or more numbers to mark the correct answer"
     },
     "enums": {
         "studentStatus": {

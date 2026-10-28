@@ -65,7 +65,12 @@ class QuestionController extends Controller
         ]);
     }
 
-    public function create(): Response
+    public function chooseType(): Response
+    {
+        return Inertia::render('Questions/Create');
+    }
+
+    public function createText(): Response
     {
         return Inertia::render('Questions/Form', [
             'question' => null,
@@ -73,21 +78,38 @@ class QuestionController extends Controller
         ]);
     }
 
+    public function createImage(): Response
+    {
+        return Inertia::render('Questions/ImageForm', [
+            'question' => null,
+            'categories' => $this->categories(),
+        ]);
+    }
+
+    public function create(): Response
+    {
+        return $this->chooseType();
+    }
+
     public function store(Request $request): RedirectResponse
     {
+        $format = $request->input('question_format') === 'image_based' ? 'image_based' : 'text_based';
+
+        if ($format === 'image_based') {
+            return $this->storeImageBased($request);
+        }
+
         $data = $this->mirrorTexts($request->validate($this->rules($request), $this->messages()));
         $choices = $this->choices($data['options']);
         $correct = $this->correctKeys($data['correct'], $choices);
 
-        $question = DB::transaction(function () use ($request, $data, $choices, $correct) {
+        DB::transaction(function () use ($request, $data, $choices, $correct) {
             $question = new Question($this->attributes($data, count($correct), $request->user()->id));
             $this->applyMedia($request, $question);
             $question->save();
 
             $this->syncTexts($question, $data);
             $this->syncOptions($question, $choices, $correct);
-
-            return $question;
         });
 
         return redirect()->route('questions.index')->with('success', 'created');
@@ -95,14 +117,27 @@ class QuestionController extends Controller
 
     public function edit(Question $question): Response
     {
-        return Inertia::render('Questions/Form', [
-            'question' => $this->summary($question->loadMissing(['translations', 'options.translations'])),
+        $loaded = $question->loadMissing(['translations', 'options.translations']);
+        $summary = $this->summary($loaded);
+
+        $view = $question->question_format === 'image_based'
+            ? 'Questions/ImageForm'
+            : 'Questions/Form';
+
+        return Inertia::render($view, [
+            'question' => $summary,
             'categories' => $this->categories(),
         ]);
     }
 
     public function update(Request $request, Question $question): RedirectResponse
     {
+        $format = $question->question_format;
+
+        if ($format === 'image_based') {
+            return $this->updateImageBased($request, $question);
+        }
+
         $data = $this->mirrorTexts($request->validate($this->rules($request), $this->messages()));
         $choices = $this->choices($data['options']);
         $correct = $this->correctKeys($data['correct'], $choices);
@@ -119,8 +154,102 @@ class QuestionController extends Controller
         return redirect()->route('questions.index')->with('success', 'updated');
     }
 
-    public function toggleActive(Question $question): RedirectResponse
+    private function storeImageBased(Request $request): RedirectResponse
     {
+        $data = $request->validate($this->imageBasedRules($request));
+        $correct = $this->correctKeysFromIndexes($data['correct']);
+
+        DB::transaction(function () use ($request, $data, $correct) {
+            $question = new Question([
+                'license_category_id' => ($data['license_category_id'] ?? null) ?: null,
+                'time_limit_seconds' => $data['time_limit_seconds'],
+                'question_type' => count($correct) > 1 ? 'multiple_choice' : 'single_choice',
+                'question_format' => 'image_based',
+                'created_by' => $request->user()->id,
+            ]);
+            $this->applyMedia($request, $question);
+            $question->save();
+
+            // Image-based questions store 4 option slots (A–D) with no text — only is_correct matters.
+            foreach (self::KEYS as $position => $key) {
+                $option = AnswerOption::updateOrCreate(
+                    ['question_id' => $question->id, 'option_key' => $key],
+                    ['is_correct' => in_array($key, $correct, true), 'sort_order' => $position + 1],
+                );
+                // No text translations needed for image-based choices.
+                foreach (['ar', 'fr'] as $locale) {
+                    OptionTranslation::updateOrCreate(
+                        ['answer_option_id' => $option->id, 'locale' => $locale],
+                        ['option_text' => (string) ($position + 1), 'prefix' => null],
+                    );
+                }
+            }
+        });
+
+        return redirect()->route('questions.index')->with('success', 'created');
+    }
+
+    private function updateImageBased(Request $request, Question $question): RedirectResponse
+    {
+        $data = $request->validate($this->imageBasedRules($request));
+        $correct = $this->correctKeysFromIndexes($data['correct']);
+
+        DB::transaction(function () use ($request, $question, $data, $correct) {
+            $question->fill([
+                'license_category_id' => ($data['license_category_id'] ?? null) ?: null,
+                'time_limit_seconds' => $data['time_limit_seconds'],
+                'question_type' => count($correct) > 1 ? 'multiple_choice' : 'single_choice',
+            ]);
+            $this->applyMedia($request, $question);
+            $question->save();
+
+            foreach (self::KEYS as $position => $key) {
+                $option = AnswerOption::updateOrCreate(
+                    ['question_id' => $question->id, 'option_key' => $key],
+                    ['is_correct' => in_array($key, $correct, true), 'sort_order' => $position + 1],
+                );
+                foreach (['ar', 'fr'] as $locale) {
+                    OptionTranslation::updateOrCreate(
+                        ['answer_option_id' => $option->id, 'locale' => $locale],
+                        ['option_text' => (string) ($position + 1), 'prefix' => null],
+                    );
+                }
+            }
+        });
+
+        return redirect()->route('questions.index')->with('success', 'updated');
+    }
+
+    private function imageBasedRules(Request $request): array
+    {
+        return [
+            'license_category_id' => ['nullable', 'integer', Rule::exists(LicenseCategory::class, 'id')],
+            'time_limit_seconds' => ['required', 'integer', 'min:1', 'max:600'],
+            'correct' => ['required', 'array', 'min:1'],
+            'correct.*' => ['integer', 'between:0,3', 'distinct'],
+            'image_ar' => ['nullable', 'image', 'mimes:'.self::IMAGES, 'max:4096'],
+            'image_fr' => ['nullable', 'image', 'mimes:'.self::IMAGES, 'max:4096'],
+            'audio_ar' => ['nullable', 'file', 'mimes:'.self::AUDIO, 'max:16384'],
+            'audio_fr' => ['nullable', 'file', 'mimes:'.self::AUDIO, 'max:16384'],
+            'remove_image_ar' => ['boolean'],
+            'remove_image_fr' => ['boolean'],
+            'remove_audio_ar' => ['boolean'],
+            'remove_audio_fr' => ['boolean'],
+        ];
+    }
+
+    private function correctKeysFromIndexes(array $correct): array
+    {
+        return collect($correct)
+            ->map(fn ($index) => (int) $index)
+            ->filter(fn (int $index) => isset(self::KEYS[$index]))
+            ->map(fn (int $index) => self::KEYS[$index])
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    public function toggleActive(Question $question): RedirectResponse    {
         $wasActive = $question->is_active;
         $question->update(['is_active' => ! $wasActive]);
 
@@ -364,6 +493,7 @@ class QuestionController extends Controller
         $attributes = [
             'license_category_id' => ($data['license_category_id'] ?? null) ?: null,
             'time_limit_seconds' => $data['time_limit_seconds'],
+            'question_format' => 'text_based',
             // How many answers are right decides the shape: one tick is a single choice, two or
             // more is a multiple one, so staff never set the type by hand and get it wrong.
             'question_type' => $correctCount > 1 ? 'multiple_choice' : 'single_choice',
@@ -453,6 +583,7 @@ class QuestionController extends Controller
 
         return [
             'id' => $question->id,
+            'format' => $question->question_format ?? 'text_based',
             'textFr' => $question->textFor('fr'),
             'textAr' => $question->textFor('ar'),
             'categoryId' => $question->licenseCategory?->id,

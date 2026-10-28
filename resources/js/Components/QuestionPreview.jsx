@@ -64,11 +64,16 @@ export default function QuestionPreview({ question, onClose }) {
     const label = (choice) => inLang(choice.ar, choice.fr);
     const prefix = (choice) => inLang(choice.prefixAr, choice.prefixFr);
 
+    const isImageBased = question?.format === 'image_based';
+
     // A tall picture — a panneau, a dashcam strip, a phone screenshot — keeps its height beside the
     // wording; a wide one lies down on top and pushes the sheet under it.
-    const split = Boolean(image) && ratio !== null && ratio < 1;
-    const mediaClass = `relative min-h-[26vh] flex-1 overflow-hidden rounded-t-2xl bg-black lg:min-h-0 ${
-        split ? 'lg:w-[52%] lg:flex-none lg:rounded-bl-2xl lg:rounded-tr-none' : ''
+    // For image-based questions the image IS the question — it fills the full card.
+    const split = !isImageBased && Boolean(image) && ratio !== null && ratio < 1;
+    const mediaClass = `relative overflow-hidden rounded-t-2xl bg-black ${
+        isImageBased
+            ? 'flex-1 rounded-2xl'
+            : `min-h-[26vh] flex-1 lg:min-h-0 ${split ? 'lg:w-[52%] lg:flex-none lg:rounded-bl-2xl lg:rounded-tr-none' : ''}`
     }`;
     const sheetClass = `shrink-0 rounded-b-2xl border-t border-gray-200 p-4 sm:p-5 dark:border-gray-700 ${
         split
@@ -208,7 +213,7 @@ export default function QuestionPreview({ question, onClose }) {
                                                 event.currentTarget.naturalHeight,
                                         )
                                     }
-                                    className="h-full w-full object-contain"
+                                    className={`h-full w-full ${isImageBased ? 'object-contain' : 'object-contain'}`}
                                 />
                             ) : (
                                 <div className="flex h-full w-full flex-col items-center justify-center gap-y-2 text-gray-500">
@@ -234,6 +239,8 @@ export default function QuestionPreview({ question, onClose }) {
                             )}
                         </div>
 
+                        {/* Text sheet — hidden for image-based questions */}
+                        {!isImageBased && (
                         <div dir={rtl ? 'rtl' : 'ltr'} className={sheetClass}>
                             <p
                                 className={`mt-0.5 text-2xl font-bold leading-relaxed sm:text-3xl ${
@@ -275,6 +282,7 @@ export default function QuestionPreview({ question, onClose }) {
                                 ))}
                             </ol>
                         </div>
+                        )}
                     </div>
 
                     <div className={`${panel} flex shrink-0 flex-col p-4 lg:w-56`}>

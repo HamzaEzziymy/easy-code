@@ -60,7 +60,9 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::delete('/categories/{category}', [CategoryController::class, 'destroy'])->name('categories.destroy');
 
     Route::get('/questions', [QuestionController::class, 'index'])->name('questions.index');
-    Route::get('/questions/create', [QuestionController::class, 'create'])->name('questions.create');
+    Route::get('/questions/create', [QuestionController::class, 'chooseType'])->name('questions.create');
+    Route::get('/questions/create/text', [QuestionController::class, 'createText'])->name('questions.create.text');
+    Route::get('/questions/create/image', [QuestionController::class, 'createImage'])->name('questions.create.image');
     Route::post('/questions', [QuestionController::class, 'store'])->name('questions.store');
     Route::get('/questions/{question}/edit', [QuestionController::class, 'edit'])->name('questions.edit');
     Route::patch('/questions/{question}', [QuestionController::class, 'update'])->name('questions.update');

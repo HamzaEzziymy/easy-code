@@ -1,4 +1,4 @@
-{
+﻿{
     "language": {
         "en": "English",
         "fr": "Français",
@@ -276,7 +276,19 @@
         "audio": "Audio",
         "langHelp": "Une seule langue suffit : la langue vide reprend le texte écrit.",
         "langEmpty": "Vide : {{lang}} reprendra le texte de l’autre langue",
-        "correctHint": "Cliquez un numéro pour marquer la bonne réponse."
+        "correctHint": "Cliquez un numéro pour marquer la bonne réponse.",
+        "chooseType": "Type de question",
+        "chooseTypeHelp": "Choisissez le type de question a creer",
+        "typeTextTitle": "Question textuelle",
+        "typeTextDesc": "Redigez la question et les choix en arabe et en francais, avec image et audio optionnels",
+        "typeImageTitle": "Question illustree",
+        "typeImageDesc": "Importez une image contenant la question et les choix, puis indiquez seulement la bonne reponse",
+        "selectType": "Choisir ce type",
+        "createImageTitle": "Creer une question illustree",
+        "createImageHelp": "Importez l'image, indiquez la bonne reponse, choisissez la categorie et le temps",
+        "questionImage": "Image de la question",
+        "correctAnswers": "Bonne reponse",
+        "correctAnswersHelp": "Cliquez sur un ou plusieurs numeros pour indiquer la bonne reponse"
     },
     "enums": {
         "studentStatus": {
