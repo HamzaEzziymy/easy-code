@@ -23,10 +23,10 @@ function Sidebar({sidebarOpen, setSidebarOpen, mobileMenuOpen, setMobileMenuOpen
         { key: 'students', label: t('nav.students'),icon:<FaUserGraduate size={20}/>, href: route('students.index'), current: route().current('students.*') },
         { key: 'categories', label: t('nav.categories'),icon:<FaLayerGroup size={20}/>, href: route('categories.index'), current: route().current('categories.*') },
         { key: 'questions', label: t('nav.questions'),icon:<FaQuestion size={20}/>, href: route('questions.index'), current: route().current('questions.*') },
-        { key: 'structure', label: t('nav.structure'),icon:<MdAccountTree size={20}/>, href: '#', current: false },
-        { key: 'projects', label: t('nav.projects'),icon:<FaProjectDiagram size={20}/>, href: '#', current: false },
-        { key: 'tasks', label: t('nav.tasks'),icon:<FaTasks size={20}/>, href: '#', current: false },
-        { key: 'reports', label: t('nav.reports'),icon:<FaPaperclip size={20}/>, href: '#', current: false },
+        // { key: 'structure', label: t('nav.structure'),icon:<MdAccountTree size={20}/>, href: '#', current: false },
+        // { key: 'projects', label: t('nav.projects'),icon:<FaProjectDiagram size={20}/>, href: '#', current: false },
+        // { key: 'tasks', label: t('nav.tasks'),icon:<FaTasks size={20}/>, href: '#', current: false },
+        // { key: 'reports', label: t('nav.reports'),icon:<FaPaperclip size={20}/>, href: '#', current: false },
         { key: 'profile', label: t('nav.profile'),icon:<FaUser size={20}/>, href: route('profile.edit'), current: route().current('profile.edit') },
     ];
 

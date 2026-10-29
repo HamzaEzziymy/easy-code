@@ -82,6 +82,8 @@ export default function ImageForm({ question, categories }) {
                   .map((c) => KEYS.indexOf(c.key))
                   .filter((i) => i >= 0)
             : [],
+        explanation_ar: question?.explanationAr ?? '',
+        explanation_fr: question?.explanationFr ?? '',
         image_ar: null,
         image_fr: null,
         audio_ar: null,
@@ -388,6 +390,26 @@ export default function ImageForm({ question, categories }) {
                                     </div>
                                 </Field>
                             </div>
+                        </div>
+
+                        <div dir={uiRtl ? 'rtl' : 'ltr'} className="mt-4">
+                            <Field
+                                label={t('questions.explanation')}
+                                htmlFor={`explanation-${lang}`}
+                                hint={t('questions.explanationHelp')}
+                                error={form.errors[`explanation_${lang}`]}
+                            >
+                                <textarea
+                                    id={`explanation-${lang}`}
+                                    dir={uiRtl ? 'rtl' : 'ltr'}
+                                    rows={3}
+                                    maxLength={2000}
+                                    className={`${fieldBase} text-lg leading-relaxed`}
+                                    value={form.data[`explanation_${lang}`]}
+                                    onChange={(e) => form.setData(`explanation_${lang}`, e.target.value)}
+                                    placeholder={t('questions.explanationPlaceholder')}
+                                />
+                            </Field>
                         </div>
                     </section>
 

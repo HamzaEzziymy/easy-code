@@ -107,6 +107,8 @@ export default function Form({ question, categories }) {
                   .map((choice) => KEYS.indexOf(choice.key))
                   .filter((index) => index >= 0)
             : [],
+        explanation_fr: question?.explanationFr ?? '',
+        explanation_ar: question?.explanationAr ?? '',
         image_ar: null,
         image_fr: null,
         audio_ar: null,
@@ -506,6 +508,26 @@ export default function Form({ question, categories }) {
                                         {t('questions.seconds')}
                                     </span>
                                 </div>
+                            </Field>
+                        </div>
+
+                        <div className="mt-4">
+                            <Field
+                                label={t('questions.explanation')}
+                                htmlFor={`explanation-${lang}`}
+                                hint={t('questions.explanationHelp')}
+                                error={form.errors[`explanation_${lang}`]}
+                            >
+                                <textarea
+                                    id={`explanation-${lang}`}
+                                    dir={rtl ? 'rtl' : 'ltr'}
+                                    rows={3}
+                                    maxLength={2000}
+                                    className={areaClass}
+                                    value={form.data[`explanation_${lang}`]}
+                                    onChange={(event) => form.setData(`explanation_${lang}`, event.target.value)}
+                                    placeholder={t('questions.explanationPlaceholder')}
+                                />
                             </Field>
                         </div>
                     </section>

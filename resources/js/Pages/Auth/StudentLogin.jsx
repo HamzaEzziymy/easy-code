@@ -1,14 +1,15 @@
 import ApplicationLogo from '@/Components/ApplicationLogo';
 import InputError from '@/Components/InputError';
 import InputLabel from '@/Components/InputLabel';
+import NumericKeyboard from '@/Components/NumericKeyboard';
+import OTPInput from '@/Components/OTPInput';
 import PrimaryButton from '@/Components/PrimaryButton';
-import TextInput from '@/Components/TextInput';
 import GuestLayout from '@/Layouts/GuestLayout';
 import { Head, Link, useForm } from '@inertiajs/react';
 import { useTranslation } from 'react-i18next';
 
 export default function StudentLogin() {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
 
     const { data, setData, post, processing, errors } = useForm({
         login_code: '',
@@ -46,29 +47,29 @@ export default function StudentLogin() {
                     </p>
 
                     <form onSubmit={submit}>
-                        <div className="mb-6">
+                        <div className="mb-8">
                             <InputLabel
                                 htmlFor="login_code"
                                 value={t('studentLogin.code')}
-                                className="text-[#007BFF] dark:text-[#FFC107] font-medium"
+                                className="text-[#007BFF] dark:text-[#FFC107] font-medium mb-4 block text-center"
                             />
-                            <TextInput
-                                id="login_code"
-                                name="login_code"
-                                type="text"
-                                dir="ltr"
+                            <OTPInput
                                 value={data.login_code}
-                                className="mt-2 block w-full rounded-lg border-gray-300 dark:border-gray-600 shadow-sm font-mono tracking-widest uppercase text-center focus:border-[#007BFF] dark:focus:border-[#00AEEF] focus:ring-[#007BFF] dark:focus:ring-[#00AEEF] bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-all duration-200"
-                                autoComplete="username"
-                                autoFocus
-                                isFocused
-                                onChange={(e) => setData('login_code', e.target.value.toUpperCase())}
+                                onChange={(value) => setData('login_code', value)}
+                                length={4}
+                                maxLength={20}
                             />
-                            <InputError message={errors.login_code} className="mt-2" />
+                            <InputError message={errors.login_code} className="mt-3 text-center" />
                         </div>
 
+                        <NumericKeyboard 
+                            value={data.login_code} 
+                            onChange={(value) => setData('login_code', value)}
+                            maxLength={20}
+                        />
+
                         <PrimaryButton
-                            className="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-gradient-to-r from-[#007BFF] to-[#00AEEF] hover:from-[#0056b3] hover:to-[#008ECC] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#007BFF] dark:focus:ring-[#00AEEF] dark:focus:ring-offset-gray-800 transition-all duration-200 transform hover:scale-[1.02]"
+                            className="w-full mt-6 flex justify-center items-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-gradient-to-r from-[#007BFF] to-[#00AEEF] hover:from-[#0056b3] hover:to-[#008ECC] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#007BFF] dark:focus:ring-[#00AEEF] dark:focus:ring-offset-gray-800 transition-all duration-200 transform hover:scale-[1.02]"
                             disabled={processing}
                         >
                             {processing ? (

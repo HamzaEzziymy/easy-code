@@ -95,7 +95,8 @@
         "code": "رمز الدخول",
         "codeHelp": "أدخل الرمز الذي سلمته لك مدرسة تعليم السياقة.",
         "submit": "دخول",
-        "signingIn": "جارٍ تسجيل الدخول..."
+        "signingIn": "جارٍ تسجيل الدخول...",
+        "clearAll": "مسح الكل"
     },
     "student": {
         "title": "مساحتي",
@@ -296,7 +297,15 @@
         "createImageHelp": "ارفع صورة السؤال، حدد الجواب الصحيح، واختر الصنف والوقت",
         "questionImage": "صورة السؤال",
         "correctAnswers": "الجواب الصحيح",
-        "correctAnswersHelp": "انقر على رقم أو أكثر لتحديد الجواب الصحيح"
+        "correctAnswersHelp": "انقر على رقم أو أكثر لتحديد الجواب الصحيح",
+        "textQuestions": "أسئلة نصية",
+        "imageQuestions": "أسئلة مصوَّرة",
+        "withAudioStat": "بصوت",
+        "filterFormat": "النوع",
+        "withCategory": "بصنف",
+        "explanation": "التوضيح",
+        "explanationHelp": "توضيح اختياري للجواب الصحيح (أقصى 2000 حرف)",
+        "explanationPlaceholder": "اشرح لماذا هذا هو الجواب الصحيح"
     },
     "enums": {
         "studentStatus": {

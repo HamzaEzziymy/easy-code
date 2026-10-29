@@ -52,13 +52,16 @@ class QuestionController extends Controller
                 'answer' => $this->choice($request, 'answer', ['single', 'multiple']),
                 'status' => $this->choice($request, 'status', ['active', 'inactive']),
                 'media' => $this->choice($request, 'media', ['image', 'audio', 'none']),
+                'format' => $this->choice($request, 'format', ['text_based', 'image_based']),
                 'sort' => in_array($request->query('sort'), self::SORTABLE, true) ? $request->query('sort') : 'created_at',
                 'direction' => $request->query('direction') === 'asc' ? 'asc' : 'desc',
             ],
             'stats' => [
                 'total' => Question::count(),
                 'active' => Question::where('is_active', true)->count(),
-                'recorded' => Question::whereNotNull('audio_ar')->orWhereNotNull('audio_fr')->count(),
+                'textBased' => Question::where('question_format', 'text_based')->count(),
+                'imageBased' => Question::where('question_format', 'image_based')->count(),
+                'withCategory' => Question::whereNotNull('license_category_id')->count(),
                 'uncategorised' => Question::whereNull('license_category_id')->count(),
             ],
             'categories' => $this->categories(),
@@ -165,6 +168,8 @@ class QuestionController extends Controller
                 'time_limit_seconds' => $data['time_limit_seconds'],
                 'question_type' => count($correct) > 1 ? 'multiple_choice' : 'single_choice',
                 'question_format' => 'image_based',
+                'explanation_ar' => ($data['explanation_ar'] ?? '') ?: null,
+                'explanation_fr' => ($data['explanation_fr'] ?? '') ?: null,
                 'created_by' => $request->user()->id,
             ]);
             $this->applyMedia($request, $question);
@@ -199,6 +204,8 @@ class QuestionController extends Controller
                 'license_category_id' => ($data['license_category_id'] ?? null) ?: null,
                 'time_limit_seconds' => $data['time_limit_seconds'],
                 'question_type' => count($correct) > 1 ? 'multiple_choice' : 'single_choice',
+                'explanation_ar' => ($data['explanation_ar'] ?? '') ?: null,
+                'explanation_fr' => ($data['explanation_fr'] ?? '') ?: null,
             ]);
             $this->applyMedia($request, $question);
             $question->save();
@@ -225,6 +232,8 @@ class QuestionController extends Controller
         return [
             'license_category_id' => ['nullable', 'integer', Rule::exists(LicenseCategory::class, 'id')],
             'time_limit_seconds' => ['required', 'integer', 'min:1', 'max:600'],
+            'explanation_ar' => ['nullable', 'string', 'max:2000'],
+            'explanation_fr' => ['nullable', 'string', 'max:2000'],
             'correct' => ['required', 'array', 'min:1'],
             'correct.*' => ['integer', 'between:0,3', 'distinct'],
             'image_ar' => ['nullable', 'image', 'mimes:'.self::IMAGES, 'max:4096'],
@@ -297,6 +306,7 @@ class QuestionController extends Controller
         $answer = $this->choice($request, 'answer', ['single', 'multiple']);
         $status = $this->choice($request, 'status', ['active', 'inactive']);
         $media = $this->choice($request, 'media', ['image', 'audio', 'none']);
+        $format = $this->choice($request, 'format', ['text_based', 'image_based']);
 
         return Question::query()
             ->with(['translations', 'options.translations', 'licenseCategory'])
@@ -313,6 +323,7 @@ class QuestionController extends Controller
             ->when($media === 'image', fn ($query) => $query->where(fn ($inner) => $inner->whereNotNull('image_ar')->orWhereNotNull('image_fr')))
             ->when($media === 'audio', fn ($query) => $query->where(fn ($inner) => $inner->whereNotNull('audio_ar')->orWhereNotNull('audio_fr')))
             ->when($media === 'none', fn ($query) => $query->whereNull('image_ar')->whereNull('image_fr')->whereNull('audio_ar')->whereNull('audio_fr'))
+            ->when($format, fn ($query) => $query->where('question_format', $format))
             ->orderBy(...$this->order($request))
             ->orderByDesc('id');
     }
@@ -349,6 +360,8 @@ class QuestionController extends Controller
             'question_ar' => [$oneLanguage('question_fr'), 'nullable', 'string', 'max:2000'],
             'license_category_id' => ['nullable', 'integer', Rule::exists(LicenseCategory::class, 'id')],
             'time_limit_seconds' => ['required', 'integer', 'min:1', 'max:600'],
+            'explanation_ar' => ['nullable', 'string', 'max:2000'],
+            'explanation_fr' => ['nullable', 'string', 'max:2000'],
             'options' => ['required', 'array', 'size:4', $this->choicesRule()],
             'options.*.fr' => ['nullable', 'string', 'max:1000'],
             'options.*.ar' => ['nullable', 'string', 'max:1000'],
@@ -380,6 +393,16 @@ class QuestionController extends Controller
 
         foreach (['question_fr' => 'question_ar', 'question_ar' => 'question_fr'] as $target => $source) {
             if ($data[$target] === '' && $data[$source] !== '') {
+                $data[$target] = $data[$source];
+            }
+        }
+
+        // Mirror explanation the same way as question text.
+        foreach (['explanation_fr', 'explanation_ar'] as $target) {
+            $data[$target] = trim((string) ($data[$target] ?? ''));
+        }
+        foreach (['explanation_fr' => 'explanation_ar', 'explanation_ar' => 'explanation_fr'] as $target => $source) {
+            if ($data[$target] === '' && isset($data[$source]) && $data[$source] !== '') {
                 $data[$target] = $data[$source];
             }
         }
@@ -494,8 +517,8 @@ class QuestionController extends Controller
             'license_category_id' => ($data['license_category_id'] ?? null) ?: null,
             'time_limit_seconds' => $data['time_limit_seconds'],
             'question_format' => 'text_based',
-            // How many answers are right decides the shape: one tick is a single choice, two or
-            // more is a multiple one, so staff never set the type by hand and get it wrong.
+            'explanation_ar' => ($data['explanation_ar'] ?? '') ?: null,
+            'explanation_fr' => ($data['explanation_fr'] ?? '') ?: null,
             'question_type' => $correctCount > 1 ? 'multiple_choice' : 'single_choice',
         ];
 
@@ -586,6 +609,8 @@ class QuestionController extends Controller
             'format' => $question->question_format ?? 'text_based',
             'textFr' => $question->textFor('fr'),
             'textAr' => $question->textFor('ar'),
+            'explanationFr' => $question->explanation_fr,
+            'explanationAr' => $question->explanation_ar,
             'categoryId' => $question->licenseCategory?->id,
             'categoryCode' => $question->licenseCategory?->code,
             'categoryFr' => $question->licenseCategory?->name_fr,

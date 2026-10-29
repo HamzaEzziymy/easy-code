@@ -12,6 +12,7 @@ import {
     FaChevronLeft,
     FaChevronRight,
     FaCircleQuestion,
+    FaFileLines,
     FaImage,
     FaPlus,
     FaTrash,
@@ -79,6 +80,7 @@ export default function Index({ questions, filters, stats, categories }) {
         answer: filters.answer ?? '',
         status: filters.status ?? '',
         media: filters.media ?? '',
+        format: filters.format ?? '',
         sort: filters.sort,
         direction: filters.direction,
     };
@@ -189,21 +191,33 @@ export default function Index({ questions, filters, stats, categories }) {
                         </div>
                     )}
 
-                    <div className={`grid gap-4 p-4 sm:grid-cols-2 lg:grid-cols-3 ${panel}`}>
-                        {[
-                            ['total', t('questions.title')],
-                            ['recorded', t('questions.withAudio')],
-                            ['uncategorised', t('questions.noCategory')],
-                        ].map(([key, label]) => (
-                            <div key={key} className="flex items-baseline gap-x-2">
-                                <span className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
-                                    {stats[key]}
-                                </span>
-                                <span className="text-xs font-medium uppercase tracking-wide text-gray-600 dark:text-gray-400">
-                                    {label}
-                                </span>
+                    {/* Stats cards with colors */}
+                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                        <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4 dark:border-blue-500/30 dark:bg-blue-500/10">
+                            <p className="text-3xl font-bold text-blue-700 dark:text-blue-300">{stats.total}</p>
+                            <p className="mt-1 text-sm font-medium text-blue-600 dark:text-blue-400">{t('questions.title')}</p>
+                        </div>
+                        <div className="rounded-2xl border border-indigo-200 bg-indigo-50 p-4 dark:border-indigo-500/30 dark:bg-indigo-500/10">
+                            <div className="flex items-center gap-x-2">
+                                <FaFileLines size={14} className="text-indigo-500 dark:text-indigo-400" />
+                                <p className="text-3xl font-bold text-indigo-700 dark:text-indigo-300">{stats.textBased}</p>
                             </div>
-                        ))}
+                            <p className="mt-1 text-sm font-medium text-indigo-600 dark:text-indigo-400">{t('questions.textQuestions')}</p>
+                        </div>
+                        <div className="rounded-2xl border border-violet-200 bg-violet-50 p-4 dark:border-violet-500/30 dark:bg-violet-500/10">
+                            <div className="flex items-center gap-x-2">
+                                <FaImage size={14} className="text-violet-500 dark:text-violet-400" />
+                                <p className="text-3xl font-bold text-violet-700 dark:text-violet-300">{stats.imageBased}</p>
+                            </div>
+                            <p className="mt-1 text-sm font-medium text-violet-600 dark:text-violet-400">{t('questions.imageQuestions')}</p>
+                        </div>
+                        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-500/30 dark:bg-emerald-500/10">
+                            <div className="flex items-center gap-x-2">
+                                <FaImage size={14} className="text-emerald-500 dark:text-emerald-400" />
+                                <p className="text-3xl font-bold text-emerald-700 dark:text-emerald-300">{stats.withCategory}</p>
+                            </div>
+                            <p className="mt-1 text-sm font-medium text-emerald-600 dark:text-emerald-400">{t('questions.withCategory')}</p>
+                        </div>
                     </div>
 
                     <div className={`${panel} space-y-4 p-4`}>
@@ -231,13 +245,13 @@ export default function Index({ questions, filters, stats, categories }) {
 
                         <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
                             <Segmented
-                                label={t('questions.answer')}
-                                value={query.answer}
-                                onChange={(answer) => applyFilter({ answer })}
+                                label={t('questions.filterFormat')}
+                                value={query.format}
+                                onChange={(format) => applyFilter({ format })}
                                 options={[
                                     { value: '', labelKey: 'questions.all' },
-                                    { value: 'single', labelKey: 'questions.single' },
-                                    { value: 'multiple', labelKey: 'questions.multiple' },
+                                    { value: 'text_based', labelKey: 'questions.typeTextTitle' },
+                                    { value: 'image_based', labelKey: 'questions.typeImageTitle' },
                                 ]}
                             />
                             <Segmented
@@ -255,7 +269,7 @@ export default function Index({ questions, filters, stats, categories }) {
                                 aria-label={t('questions.category')}
                                 value={query.category}
                                 onChange={(event) => applyFilter({ category: event.target.value })}
-                                className="rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-gray-800 outline-none transition focus:border-[#007BFF] focus:ring-2 focus:ring-[#007BFF]/20 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
+                                className="rounded-xl border pr-10 border-gray-300 bg-white px-3 py-2 text-sm text-gray-800 outline-none transition focus:border-[#007BFF] focus:ring-2 focus:ring-[#007BFF]/20 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
                             >
                                 <option value="">{t('questions.anyCategory')}</option>
                                 {categories.map((category) => (

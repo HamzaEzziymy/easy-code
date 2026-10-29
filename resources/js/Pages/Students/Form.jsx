@@ -3,6 +3,7 @@ import CodeCopy from '@/Components/CodeCopy';
 import DigitSquares from '@/Components/DigitSquares';
 import InputError from '@/Components/InputError';
 import { EXAM_LANGUAGES } from '@/Components/LanguageChip';
+import OTPInput from '@/Components/OTPInput';
 import PrimaryButton from '@/Components/PrimaryButton';
 import SecondaryButton from '@/Components/SecondaryButton';
 import StudentAvatar from '@/Components/StudentAvatar';
@@ -295,7 +296,7 @@ export default function Form({ student, categories, suggestedNumber }) {
                                 </Field>
 
                                 <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-900/40">
-                                    <p className="flex items-center gap-x-2 text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">
+                                    <p className="flex items-center gap-x-2 text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300 mb-3">
                                         <FaKey
                                             size={12}
                                             className="text-[#007BFF] dark:text-[#00AEEF]"
@@ -303,18 +304,16 @@ export default function Form({ student, categories, suggestedNumber }) {
                                         {t('students.loginCode')}
                                     </p>
 
-                                    <Input
-                                        id="student-login-code"
-                                        autoComplete="off"
-                                        dir="ltr"
-                                        placeholder={isEdit ? '' : 'EC-2026-0002'}
-                                        value={form.data.login_code}
-                                        onChange={(event) =>
-                                            form.setData('login_code', event.target.value)
-                                        }
-                                    />
+                                    <div className="flex justify-center mb-3">
+                                        <OTPInput
+                                            value={form.data.login_code}
+                                            onChange={(value) => form.setData('login_code', value)}
+                                            length={4}
+                                            maxLength={4}
+                                        />
+                                    </div>
                                     <InputError
-                                        className="mt-1.5"
+                                        className="mt-1.5 text-center"
                                         message={form.errors.login_code}
                                     />
 
@@ -332,7 +331,7 @@ export default function Form({ student, categories, suggestedNumber }) {
                                             </p>
                                         </div>
                                     ) : (
-                                        <p className="mt-1.5 text-xs text-gray-600 dark:text-gray-400">
+                                        <p className="mt-1.5 text-xs text-gray-600 dark:text-gray-400 text-center">
                                             {isEdit
                                                 ? t('students.codeNotStored')
                                                 : t('students.loginCodeHelp')}

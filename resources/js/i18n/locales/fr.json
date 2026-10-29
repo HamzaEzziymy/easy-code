@@ -95,7 +95,8 @@
         "code": "Code de connexion",
         "codeHelp": "Saisissez le code remis par votre auto-école.",
         "submit": "Se connecter",
-        "signingIn": "Connexion en cours..."
+        "signingIn": "Connexion en cours...",
+        "clearAll": "Effacer tout"
     },
     "student": {
         "title": "Mon espace",
@@ -288,7 +289,15 @@
         "createImageHelp": "Importez l'image, indiquez la bonne reponse, choisissez la categorie et le temps",
         "questionImage": "Image de la question",
         "correctAnswers": "Bonne reponse",
-        "correctAnswersHelp": "Cliquez sur un ou plusieurs numeros pour indiquer la bonne reponse"
+        "correctAnswersHelp": "Cliquez sur un ou plusieurs numeros pour indiquer la bonne reponse",
+        "textQuestions": "Questions textuelles",
+        "imageQuestions": "Questions illustrees",
+        "withAudioStat": "Avec audio",
+        "filterFormat": "Type",
+        "withCategory": "Avec categorie",
+        "explanation": "Explication",
+        "explanationHelp": "Explication optionnelle de la bonne reponse (max 2000 caracteres)",
+        "explanationPlaceholder": "Expliquez pourquoi c'est la bonne reponse"
     },
     "enums": {
         "studentStatus": {

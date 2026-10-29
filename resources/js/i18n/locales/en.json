@@ -95,7 +95,8 @@
         "code": "Login code",
         "codeHelp": "Enter the code given to you by your driving school.",
         "submit": "Sign in",
-        "signingIn": "Signing in..."
+        "signingIn": "Signing in...",
+        "clearAll": "Clear All"
     },
     "student": {
         "title": "My space",
@@ -288,7 +289,15 @@
         "createImageHelp": "Upload the question image, mark the correct answer, select category and time",
         "questionImage": "Question image",
         "correctAnswers": "Correct answer",
-        "correctAnswersHelp": "Click one or more numbers to mark the correct answer"
+        "correctAnswersHelp": "Click one or more numbers to mark the correct answer",
+        "textQuestions": "Text questions",
+        "imageQuestions": "Image questions",
+        "withAudioStat": "With audio",
+        "filterFormat": "Type",
+        "withCategory": "With category",
+        "explanation": "Explanation",
+        "explanationHelp": "Optional explanation for the correct answer (max 2000 characters)",
+        "explanationPlaceholder": "Explain why this is the correct answer"
     },
     "enums": {
         "studentStatus": {

@@ -10,7 +10,7 @@ export const LOCALE_STORAGE_KEY = 'app.locale';
 export const locales = [
     { code: 'en', dir: 'ltr', label: en.language.en },
     { code: 'fr', dir: 'ltr', label: fr.language.fr },
-    { code: 'ar', dir: 'rtl', label: ar.language.ar },
+    { code: 'ar', dir: 'ltr', label: ar.language.ar },
 ];
 
 const isSupported = (code) => locales.some((locale) => locale.code === code);
