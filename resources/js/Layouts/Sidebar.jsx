@@ -84,6 +84,7 @@ function Sidebar({ sidebarOpen, setSidebarOpen, mobileMenuOpen, setMobileMenuOpe
         href:      route('exams.category', cat.id),
         current:   route().current('exams.category', { category: cat.id }),
     }));
+    console.log(categories)
 
     // True when any category sub-item is the active page
     const examGroupActive = categoryChildren.some(c => c.current);
