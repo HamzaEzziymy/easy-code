@@ -36,7 +36,8 @@
         "users": "Users",
         "students": "Trainees",
         "categories": "Categories",
-        "questions": "Question bank"
+        "questions": "Question bank",
+        "examsAndCourses": "Exams & Courses"
     },
     "topbar": {
         "lightMode": "Switch to Light Mode",

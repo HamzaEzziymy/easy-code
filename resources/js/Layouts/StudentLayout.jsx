@@ -1,7 +1,8 @@
 import ApplicationLogo from '@/Components/ApplicationLogo';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { router, usePage } from '@inertiajs/react';
 import { useTranslation } from 'react-i18next';
+import { applyLocale } from '@/i18n';
 import {
     FaBars,
     FaCarSide,
@@ -45,6 +46,13 @@ export default function StudentLayout({ student, children }) {
     const user = usePage().props.auth.user;
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [leaving, setLeaving] = useState(false);
+
+    // Force LTR for the student space regardless of language
+    useEffect(() => {
+        document.documentElement.dir = 'ltr';
+        // Restore the correct direction when leaving this layout
+        return () => applyLocale(i18n.language);
+    }, []);
 
     const handleLogout = () => {
         if (leaving) {

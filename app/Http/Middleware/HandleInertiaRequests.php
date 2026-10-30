@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\LicenseCategory;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -37,6 +38,11 @@ class HandleInertiaRequests extends Middleware
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),
             ],
+            'categories' => fn () => $request->user()
+                ? LicenseCategory::where('is_active', true)
+                    ->orderBy('code')
+                    ->get(['id', 'code', 'name_ar', 'name_fr'])
+                : [],
         ];
     }
 }

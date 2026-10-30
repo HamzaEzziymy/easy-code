@@ -2,11 +2,19 @@ import ApplicationLogo from '@/Components/ApplicationLogo';
 import LanguageSwitcher from '@/Components/LanguageSwitcher';
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { applyLocale } from '@/i18n';
 
 const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
 
 export default function GuestLayout({ children }) {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
+
+    // Force LTR for the student login area regardless of language
+    useEffect(() => {
+        document.documentElement.dir = 'ltr';
+        // Restore the correct direction when leaving this layout
+        return () => applyLocale(i18n.language);
+    }, []);
 
     useEffect(() => {
         const savedTheme = localStorage.getItem('theme');

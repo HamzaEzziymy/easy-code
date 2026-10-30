@@ -36,7 +36,8 @@
         "users": "المستخدمون",
         "students": "المتدربون",
         "categories": "الأصناف",
-        "questions": "بنك الأسئلة"
+        "questions": "بنك الأسئلة",
+        "examsAndCourses": "الامتحانات والدروس"
     },
     "topbar": {
         "lightMode": "التبديل إلى الوضع الفاتح",

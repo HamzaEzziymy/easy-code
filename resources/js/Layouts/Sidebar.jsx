@@ -1,14 +1,26 @@
-import React from 'react'
-import { Link } from '@inertiajs/react';
+import React, { useState } from 'react'
+import { Link, usePage } from '@inertiajs/react';
 import ApplicationLogo from '@/Components/ApplicationLogo';
-import {FaHome, FaLayerGroup, FaPaperclip, FaProjectDiagram, FaQuestion, FaTasks, FaUser, FaUsers, FaUserGraduate } from 'react-icons/fa';
+import {FaHome, FaLayerGroup, FaPaperclip, FaProjectDiagram, FaQuestion, FaTasks, FaUser, FaUsers, FaUserGraduate, FaChevronDown, FaChevronUp, FaClipboardList } from 'react-icons/fa';
 import { IoDocumentsSharp } from "react-icons/io5";
 import { MdAccountTree } from "react-icons/md";
 import { useTranslation } from 'react-i18next';
 
 
 function Sidebar({sidebarOpen, setSidebarOpen, mobileMenuOpen, setMobileMenuOpen}) {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
+    const { categories = [] } = usePage().props;
+    const [openGroups, setOpenGroups] = useState({});
+
+    const toggleGroup = (key) => {
+        setOpenGroups(prev => ({ ...prev, [key]: !prev[key] }));
+    };
+
+    // Pick the right name field based on current language; fall back to code
+    const getCategoryName = (cat) => {
+        if (i18n.language === 'ar') return cat.name_ar || cat.code;
+        return cat.name_fr || cat.code;
+    };
 
     // Navigation items
     const navigation = [
@@ -23,6 +35,17 @@ function Sidebar({sidebarOpen, setSidebarOpen, mobileMenuOpen, setMobileMenuOpen
         { key: 'students', label: t('nav.students'),icon:<FaUserGraduate size={20}/>, href: route('students.index'), current: route().current('students.*') },
         { key: 'categories', label: t('nav.categories'),icon:<FaLayerGroup size={20}/>, href: route('categories.index'), current: route().current('categories.*') },
         { key: 'questions', label: t('nav.questions'),icon:<FaQuestion size={20}/>, href: route('questions.index'), current: route().current('questions.*') },
+        {
+            key: 'exams-courses',
+            label: t('nav.examsAndCourses'),
+            icon: <FaClipboardList size={20} />,
+            children: categories.map((cat) => ({
+                key: `cat-${cat.id}`,
+                label: getCategoryName(cat),
+                href: '#',
+                current: false,
+            })),
+        },
         // { key: 'structure', label: t('nav.structure'),icon:<MdAccountTree size={20}/>, href: '#', current: false },
         // { key: 'projects', label: t('nav.projects'),icon:<FaProjectDiagram size={20}/>, href: '#', current: false },
         // { key: 'tasks', label: t('nav.tasks'),icon:<FaTasks size={20}/>, href: '#', current: false },
@@ -54,20 +77,53 @@ function Sidebar({sidebarOpen, setSidebarOpen, mobileMenuOpen, setMobileMenuOpen
                 </button>
             </div>
             <nav className="relative mt-5 space-y-1 px-3">
-                {navigation.map((item) => (
-                    <Link
-                        key={item.key}
-                        href={item.href}
-                        className={`group flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                            item.current
-                                ? 'bg-indigo-50 text-indigo-600 dark:bg-indigo-900/50 dark:text-indigo-400'
-                                : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white'
-                        }`}
-                    >
-                        {item.icon && <span className="me-3">{item.icon}</span>}
-                        {item.label}
-                    </Link>
-                ))}
+                {navigation.map((item) =>
+                    item.children ? (
+                        <div key={item.key}>
+                            <button
+                                onClick={() => toggleGroup(item.key)}
+                                className="group flex w-full items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors text-gray-700 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white"
+                            >
+                                <span className="me-3">{item.icon}</span>
+                                <span className="flex-1 text-start">{item.label}</span>
+                                <span className="ms-auto">
+                                    {openGroups[item.key] ? <FaChevronUp size={12} /> : <FaChevronDown size={12} />}
+                                </span>
+                            </button>
+                            {openGroups[item.key] && (
+                                <div className="ms-6 mt-1 space-y-1 border-s-2 border-indigo-200 ps-3 dark:border-indigo-800">
+                                    {item.children.map((child) => (
+                                        <Link
+                                            key={child.key}
+                                            href={child.href}
+                                            className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                                                child.current
+                                                    ? 'bg-indigo-50 text-indigo-600 dark:bg-indigo-900/50 dark:text-indigo-400'
+                                                    : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white'
+                                            }`}
+                                        >
+                                            {child.icon && <span>{child.icon}</span>}
+                                            {child.label}
+                                        </Link>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    ) : (
+                        <Link
+                            key={item.key}
+                            href={item.href}
+                            className={`group flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                                item.current
+                                    ? 'bg-indigo-50 text-indigo-600 dark:bg-indigo-900/50 dark:text-indigo-400'
+                                    : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white'
+                            }`}
+                        >
+                            {item.icon && <span className="me-3">{item.icon}</span>}
+                            {item.label}
+                        </Link>
+                    )
+                )}
             </nav>
             {watermark}
         </div>
@@ -93,24 +149,65 @@ function Sidebar({sidebarOpen, setSidebarOpen, mobileMenuOpen, setMobileMenuOpen
                 </div>
                 <nav className="relative flex flex-1 flex-col px-3">
                     <ul className="space-y-1">
-                        {navigation.map((item) => (
-                            <li key={item.key}>
-                                <Link
-                                    href={item.href}
-                                    className={`group flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                                        item.current
-                                            ? 'bg-indigo-50 text-indigo-600 dark:bg-indigo-900/50 dark:text-indigo-400'
-                                            : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white'
-                                    }`}
-                                    title={!sidebarOpen ? item.label : ''}
-                                >
-                                    <span className={`${!sidebarOpen && 'mx-auto'}`}>
-                                        {item.icon}
-                                    </span>
-                                    {sidebarOpen && <span>{item.label}</span>}
-                                </Link>
-                            </li>
-                        ))}
+                        {navigation.map((item) =>
+                            item.children ? (
+                                <li key={item.key}>
+                                    <button
+                                        onClick={() => sidebarOpen && toggleGroup(item.key)}
+                                        className={`group flex w-full items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors text-gray-700 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white`}
+                                        title={!sidebarOpen ? item.label : ''}
+                                    >
+                                        <span className={`${!sidebarOpen && 'mx-auto'}`}>
+                                            {item.icon}
+                                        </span>
+                                        {sidebarOpen && (
+                                            <>
+                                                <span className="flex-1 text-start">{item.label}</span>
+                                                <span className="ms-auto">
+                                                    {openGroups[item.key] ? <FaChevronUp size={12} /> : <FaChevronDown size={12} />}
+                                                </span>
+                                            </>
+                                        )}
+                                    </button>
+                                    {sidebarOpen && openGroups[item.key] && (
+                                        <ul className="ms-6 mt-1 space-y-1 border-s-2 border-indigo-200 ps-3 dark:border-indigo-800">
+                                            {item.children.map((child) => (
+                                                <li key={child.key}>
+                                                    <Link
+                                                        href={child.href}
+                                                        className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                                                            child.current
+                                                                ? 'bg-indigo-50 text-indigo-600 dark:bg-indigo-900/50 dark:text-indigo-400'
+                                                                : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white'
+                                                        }`}
+                                                    >
+                                                        {child.icon && <span>{child.icon}</span>}
+                                                        {child.label}
+                                                    </Link>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    )}
+                                </li>
+                            ) : (
+                                <li key={item.key}>
+                                    <Link
+                                        href={item.href}
+                                        className={`group flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                                            item.current
+                                                ? 'bg-indigo-50 text-indigo-600 dark:bg-indigo-900/50 dark:text-indigo-400'
+                                                : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white'
+                                        }`}
+                                        title={!sidebarOpen ? item.label : ''}
+                                    >
+                                        <span className={`${!sidebarOpen && 'mx-auto'}`}>
+                                            {item.icon}
+                                        </span>
+                                        {sidebarOpen && <span>{item.label}</span>}
+                                    </Link>
+                                </li>
+                            )
+                        )}
                     </ul>
                 </nav>
                 {watermark}

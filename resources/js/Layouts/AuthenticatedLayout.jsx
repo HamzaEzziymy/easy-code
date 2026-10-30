@@ -4,15 +4,21 @@ import { useTranslation } from 'react-i18next';
 import Dropdown from '@/Components/Dropdown';
 import LanguageSwitcher from '@/Components/LanguageSwitcher';
 import Sidebar from './Sidebar';
+import { applyLocale } from '@/i18n';
 
 const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
 
 export default function AuthenticatedLayout({ header, children }) {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
     const user = usePage().props.auth.user;
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [darkMode, setDarkMode] = useState(true);
+
+    // Keep <html dir> in sync whenever the language changes
+    useEffect(() => {
+        applyLocale(i18n.language);
+    }, [i18n.language]);
 
     // Dark mode toggle
     const toggleDarkMode = () => {

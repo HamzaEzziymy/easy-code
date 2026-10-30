@@ -36,7 +36,8 @@
         "users": "Utilisateurs",
         "students": "Stagiaires",
         "categories": "Catégories",
-        "questions": "Banque de questions"
+        "questions": "Banque de questions",
+        "examsAndCourses": "Examens & Cours"
     },
     "topbar": {
         "lightMode": "Passer en mode clair",
