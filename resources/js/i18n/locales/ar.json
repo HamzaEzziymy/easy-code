@@ -16,6 +16,7 @@
         "confirm": "تأكيد",
         "edit": "تعديل",
         "comingSoon": "قريباً",
+        "delete": "حذف",
         "dashboard": "لوحة التحكم",
         "profile": "الملف الشخصي",
         "logIn": "تسجيل الدخول",
@@ -544,9 +545,11 @@
     },
     "categoryDashboard": {
         "category": "الصنف",
+        "subtitle": "دروس واختبارات وامتحانات الصنف",
         "courses": "الدروس",
         "tests": "الاختبارات",
         "exams": "الامتحانات",
+        "all": "الكل",
         "allContent": "كل المحتوى",
         "items": "عنصر",
         "createNew": "إنشاء",
@@ -560,17 +563,25 @@
         "type_course": "درس",
         "type_test": "اختبار",
         "type_exam": "امتحان",
+        "filterType": "النوع",
+        "filterStatus": "الحالة",
+        "searchPlaceholder": "البحث بالعنوان…",
         "addCourse": "درس جديد",
         "addTest": "اختبار جديد",
         "noContent": "لا يوجد محتوى بعد",
-        "noContentHelp": "أنشئ أول درس أو اختبار أو امتحان لهذا الصنف.",
+        "noContentHelp": "اضغط «إنشاء» لإضافة درس أو اختبار أو امتحان.",
         "createFirst": "إنشاء أول عنصر",
-        "noCourses": "لا دروس لهذا الصنف.",
-        "noTests": "لا اختبارات لهذا الصنف.",
-        "noExams": "لا امتحانات لهذا الصنف.",
+        "noCourses": "لا دروس.",
+        "noTests": "لا اختبارات.",
+        "noExams": "لا امتحانات.",
         "deleteTitle": "حذف هذا العنصر؟",
-        "deleteHelp": "سيتم حذف «{{name}}» نهائياً.",
+        "deleteHelp": "سيتم الحذف نهائياً ولا يمكن التراجع.",
         "manageCourses": "إدارة الدروس",
-        "manageTests": "إدارة الاختبارات"
+        "manageTests": "إدارة الاختبارات",
+        "flash": {
+            "created": "تم الإنشاء بنجاح.",
+            "updated": "تم التحديث.",
+            "deleted": "تم الحذف."
+        }
     }
 }

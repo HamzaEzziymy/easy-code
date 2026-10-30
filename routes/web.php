@@ -149,18 +149,16 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::get('/questions/{question}/media/{slot}', [QuestionController::class, 'media'])->name('questions.media');
 
     // Courses
-    Route::get('/courses', [CourseController::class, 'index'])->name('courses.index');
+    Route::get('/courses/{course}/file/{slot}', [CourseController::class, 'file'])->name('courses.file');
     Route::post('/courses', [CourseController::class, 'store'])->name('courses.store');
     Route::patch('/courses/{course}', [CourseController::class, 'update'])->name('courses.update');
     Route::delete('/courses/{course}', [CourseController::class, 'destroy'])->name('courses.destroy');
-    Route::get('/courses/{course}/file/{slot}', [CourseController::class, 'file'])->name('courses.file');
 
     // Tests
-    Route::get('/tests', [TestController::class, 'index'])->name('tests.index');
+    Route::get('/tests/{test}/file/{slot}', [TestController::class, 'file'])->name('tests.file');
     Route::post('/tests', [TestController::class, 'store'])->name('tests.store');
     Route::patch('/tests/{test}', [TestController::class, 'update'])->name('tests.update');
     Route::delete('/tests/{test}', [TestController::class, 'destroy'])->name('tests.destroy');
-    Route::get('/tests/{test}/file/{slot}', [TestController::class, 'file'])->name('tests.file');
 });
 
 require __DIR__.'/auth.php';
