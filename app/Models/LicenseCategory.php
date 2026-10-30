@@ -39,6 +39,16 @@ class LicenseCategory extends Model
         return $this->hasMany(Exam::class);
     }
 
+    public function courses(): HasMany
+    {
+        return $this->hasMany(Course::class);
+    }
+
+    public function tests(): HasMany
+    {
+        return $this->hasMany(Test::class);
+    }
+
     public function successRecords(): HasMany
     {
         return $this->hasMany(StudentSuccessRecord::class);

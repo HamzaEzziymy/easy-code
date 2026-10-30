@@ -1,8 +1,10 @@
 <?php
 
 use App\Http\Controllers\Admin\CategoryController;
+use App\Http\Controllers\Admin\CourseController;
 use App\Http\Controllers\Admin\QuestionController;
 use App\Http\Controllers\Admin\StudentController;
+use App\Http\Controllers\Admin\TestController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Student\DashboardController as StudentDashboard;
@@ -60,6 +62,46 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::delete('/categories/{category}', [CategoryController::class, 'destroy'])->name('categories.destroy');
 
     Route::get('/exams/{category}', function (\App\Models\LicenseCategory $category) {
+        $presentCourse = fn (\App\Models\Course $c) => [
+            'id'            => $c->id,
+            'nameFr'        => $c->name_fr,
+            'nameAr'        => $c->name_ar,
+            'descriptionFr' => $c->description_fr,
+            'descriptionAr' => $c->description_ar,
+            'status'        => $c->status,
+            'categoryId'    => $c->license_category_id,
+            'coverUrl'      => $c->cover_path ? route('courses.file', [$c, 'cover']).'?v='.$c->updated_at->timestamp : null,
+            'pdfFrUrl'      => $c->pdf_fr_path ? route('courses.file', [$c, 'pdf_fr']).'?v='.$c->updated_at->timestamp : null,
+            'pdfArUrl'      => $c->pdf_ar_path ? route('courses.file', [$c, 'pdf_ar']).'?v='.$c->updated_at->timestamp : null,
+        ];
+
+        $presentTest = fn (\App\Models\Test $t) => [
+            'id'             => $t->id,
+            'nameFr'         => $t->name_fr,
+            'nameAr'         => $t->name_ar,
+            'descriptionFr'  => $t->description_fr,
+            'descriptionAr'  => $t->description_ar,
+            'status'         => $t->status,
+            'categoryId'     => $t->license_category_id,
+            'duration'       => $t->duration_minutes,
+            'passPercentage' => $t->pass_percentage,
+            'questionsCount' => $t->testQuestions()->count(),
+            'questionIds'    => $t->testQuestions()->pluck('question_id')->values()->all(),
+            'coverUrl'       => $t->cover_path ? route('tests.file', [$t, 'cover']).'?v='.$t->updated_at->timestamp : null,
+        ];
+
+        $presentExam = fn (\App\Models\Exam $e) => [
+            'id'             => $e->id,
+            'nameFr'         => $e->title_fr,
+            'nameAr'         => $e->title_ar,
+            'descriptionFr'  => $e->description,
+            'descriptionAr'  => $e->description,
+            'status'         => $e->status,
+            'duration'       => $e->duration_minutes,
+            'questionsCount' => $e->examQuestions()->count(),
+            'coverUrl'       => null,
+        ];
+
         return \Inertia\Inertia::render('Exams/CategoryDashboard', [
             'category' => [
                 'id'     => $category->id,
@@ -67,6 +109,31 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
                 'nameFr' => $category->name_fr,
                 'nameAr' => $category->name_ar,
             ],
+            'courses' => \App\Models\Course::where('license_category_id', $category->id)
+                ->latest()->get()->map($presentCourse)->values(),
+            'tests'   => \App\Models\Test::where('license_category_id', $category->id)
+                ->latest()->get()->map($presentTest)->values(),
+            'exams'   => \App\Models\Exam::where('license_category_id', $category->id)
+                ->latest()->get()->map($presentExam)->values(),
+            'categories' => \App\Models\LicenseCategory::orderBy('code')
+                ->get(['id', 'code', 'name_ar', 'name_fr'])
+                ->map(fn ($c) => [
+                    'id'     => $c->id,
+                    'code'   => $c->code,
+                    'nameAr' => $c->name_ar,
+                    'nameFr' => $c->name_fr,
+                ]),
+            'questions' => \App\Models\Question::where('is_active', true)
+                ->with(['translations', 'licenseCategory'])
+                ->get()
+                ->map(fn ($q) => [
+                    'id'           => $q->id,
+                    'textFr'       => $q->textFor('fr'),
+                    'textAr'       => $q->textFor('ar'),
+                    'categoryId'   => $q->license_category_id,
+                    'categoryCode' => $q->licenseCategory?->code,
+                ])
+                ->all(),
         ]);
     })->name('exams.category');
 
@@ -80,6 +147,20 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::patch('/questions/{question}/active', [QuestionController::class, 'toggleActive'])->name('questions.toggleActive');
     Route::delete('/questions/{question}', [QuestionController::class, 'destroy'])->name('questions.destroy');
     Route::get('/questions/{question}/media/{slot}', [QuestionController::class, 'media'])->name('questions.media');
+
+    // Courses
+    Route::get('/courses', [CourseController::class, 'index'])->name('courses.index');
+    Route::post('/courses', [CourseController::class, 'store'])->name('courses.store');
+    Route::patch('/courses/{course}', [CourseController::class, 'update'])->name('courses.update');
+    Route::delete('/courses/{course}', [CourseController::class, 'destroy'])->name('courses.destroy');
+    Route::get('/courses/{course}/file/{slot}', [CourseController::class, 'file'])->name('courses.file');
+
+    // Tests
+    Route::get('/tests', [TestController::class, 'index'])->name('tests.index');
+    Route::post('/tests', [TestController::class, 'store'])->name('tests.store');
+    Route::patch('/tests/{test}', [TestController::class, 'update'])->name('tests.update');
+    Route::delete('/tests/{test}', [TestController::class, 'destroy'])->name('tests.destroy');
+    Route::get('/tests/{test}/file/{slot}', [TestController::class, 'file'])->name('tests.file');
 });
 
 require __DIR__.'/auth.php';
