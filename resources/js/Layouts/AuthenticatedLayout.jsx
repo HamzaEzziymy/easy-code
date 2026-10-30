@@ -11,9 +11,19 @@ const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
 export default function AuthenticatedLayout({ header, children }) {
     const { t, i18n } = useTranslation();
     const user = usePage().props.auth.user;
-    const [sidebarOpen, setSidebarOpen] = useState(false);
+    const [sidebarOpen, setSidebarOpen] = useState(() => {
+        // Default to open; persist preference across refreshes
+        const saved = localStorage.getItem('sidebarOpen');
+        return saved === null ? true : saved === 'true';
+    });
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [darkMode, setDarkMode] = useState(true);
+
+    // Persist sidebar state whenever it changes
+    const handleSetSidebarOpen = (value) => {
+        setSidebarOpen(value);
+        localStorage.setItem('sidebarOpen', String(value));
+    };
 
     // Keep <html dir> in sync whenever the language changes
     useEffect(() => {
@@ -62,7 +72,7 @@ export default function AuthenticatedLayout({ header, children }) {
                 />
             )}
 
-            <Sidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen}  />
+            <Sidebar sidebarOpen={sidebarOpen} setSidebarOpen={handleSetSidebarOpen} mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen}  />
 
             {/* Main content */}
             <div className={`relative z-10 transition-all duration-300 ${!sidebarOpen ? 'lg:ps-20':'lg:ps-64'}`}>

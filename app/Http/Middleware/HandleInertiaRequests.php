@@ -41,7 +41,16 @@ class HandleInertiaRequests extends Middleware
             'categories' => fn () => $request->user()
                 ? LicenseCategory::where('is_active', true)
                     ->orderBy('code')
-                    ->get(['id', 'code', 'name_ar', 'name_fr'])
+                    ->get(['id', 'code', 'name_ar', 'name_fr', 'icon_path', 'updated_at'])
+                    ->map(fn (LicenseCategory $cat) => [
+                        'id'       => $cat->id,
+                        'code'     => $cat->code,
+                        'name_ar'  => $cat->name_ar,
+                        'name_fr'  => $cat->name_fr,
+                        'icon_url' => $cat->icon_path
+                            ? route('categories.icon', $cat) . '?v=' . $cat->updated_at->timestamp
+                            : null,
+                    ])
                 : [],
         ];
     }

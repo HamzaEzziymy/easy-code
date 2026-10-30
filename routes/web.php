@@ -59,6 +59,17 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::patch('/categories/{category}/active', [CategoryController::class, 'toggleActive'])->name('categories.toggleActive');
     Route::delete('/categories/{category}', [CategoryController::class, 'destroy'])->name('categories.destroy');
 
+    Route::get('/exams/{category}', function (\App\Models\LicenseCategory $category) {
+        return \Inertia\Inertia::render('Exams/CategoryDashboard', [
+            'category' => [
+                'id'     => $category->id,
+                'code'   => $category->code,
+                'nameFr' => $category->name_fr,
+                'nameAr' => $category->name_ar,
+            ],
+        ]);
+    })->name('exams.category');
+
     Route::get('/questions', [QuestionController::class, 'index'])->name('questions.index');
     Route::get('/questions/create', [QuestionController::class, 'chooseType'])->name('questions.create');
     Route::get('/questions/create/text', [QuestionController::class, 'createText'])->name('questions.create.text');
