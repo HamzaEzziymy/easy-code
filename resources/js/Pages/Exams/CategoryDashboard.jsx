@@ -7,8 +7,14 @@ import Modal from '@/Components/Modal';
 import PrimaryButton from '@/Components/PrimaryButton';
 import SecondaryButton from '@/Components/SecondaryButton';
 import { PdfProgressBar } from '@/Components/PdfViewer';
+import * as pdfjsLib from 'pdfjs-dist';
+
+pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+    'pdfjs-dist/build/pdf.worker.mjs',
+    import.meta.url,
+).toString();
 import { Head, router, usePage } from '@inertiajs/react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FaEdit, FaSearch } from 'react-icons/fa';
 import {
@@ -47,10 +53,10 @@ function saveProgress(url, page, total) {
     localStorage.setItem(PDF_STORAGE_KEY, JSON.stringify(all));
 }
 
-function persistScrollPct(url, pct) {
+function persistScrollPct(url, pct, page, total) {
     if (!url) return;
     const all = readProgress();
-    all[url] = { ...(all[url] || {}), scrollPct: pct };
+    all[url] = { ...(all[url] || {}), scrollPct: pct, ...(page !== undefined ? { page, total } : {}) };
     localStorage.setItem(PDF_STORAGE_KEY, JSON.stringify(all));
     // Notify same-tab listeners (storage events don't fire for same-tab writes)
     window.dispatchEvent(new Event('pdf-progress-update'));
@@ -622,85 +628,153 @@ function ItemCard({ item, rtl, t, onView, onEdit, onDelete }) {
 }
 
 /* ─── PDF Viewer Content ───────────────────────────────────────────────────── */
+function PdfCanvas({ pdfDoc, pageNum, width, onVisible }) {
+    const ref      = useRef(null);
+    const taskRef  = useRef(null);
+
+    useEffect(() => {
+        if (!pdfDoc || width < 10) return;
+        let cancelled = false;
+
+        (async () => {
+            const page   = await pdfDoc.getPage(pageNum);
+            if (cancelled) return;
+            const dpr    = window.devicePixelRatio || 1;
+            const vp     = page.getViewport({ scale: 1 });
+            // Never stretch beyond the page's natural CSS width
+            const cssWidth = Math.min(width, vp.width);
+            const scale  = (cssWidth / vp.width) * dpr;
+            const scaled = page.getViewport({ scale });
+            const canvas = ref.current;
+            if (!canvas || cancelled) return;
+            canvas.width  = scaled.width;
+            canvas.height = scaled.height;
+            canvas.style.width  = `${scaled.width  / dpr}px`;
+            canvas.style.height = `${scaled.height / dpr}px`;
+            taskRef.current?.cancel();
+            taskRef.current = page.render({ canvasContext: canvas.getContext('2d'), viewport: scaled });
+            try { await taskRef.current.promise; }
+            catch (e) { if (e?.name !== 'RenderingCancelledException') console.warn(e); }
+        })();
+
+        return () => { cancelled = true; taskRef.current?.cancel(); };
+    }, [pdfDoc, pageNum, width]);
+
+    useEffect(() => {
+        if (!onVisible || !ref.current) return;
+        const io = new IntersectionObserver(
+            ([entry]) => { if (entry.isIntersecting) onVisible(pageNum); },
+            { threshold: 0.4 },
+        );
+        io.observe(ref.current);
+        return () => io.disconnect();
+    }, [pageNum, onVisible]);
+
+    return (
+        <div id={`cd-pdf-page-${pageNum}`} className="flex justify-center">
+            <canvas ref={ref} className="block shadow-lg" style={{ maxWidth: '100%' }} />
+        </div>
+    );
+}
+
 function PdfViewerContent({ item, lang, rtl, t, onLangChange, onClose }) {
-    const currentUrl = lang === 'fr' ? item.pdfFrUrl : item.pdfArUrl;
-    const iframeRef  = useRef(null);
-    const cleanupRef = useRef(null);
-    const [loaded, setLoaded] = useState(false);
+    const currentUrl   = lang === 'fr' ? item.pdfFrUrl : item.pdfArUrl;
+    const scrollRef    = useRef(null);
+    const jumpQueued   = useRef(false);
 
-    // Reset loaded state on URL change
-    useEffect(() => { setLoaded(false); }, [currentUrl]);
+    const [pdfDoc,   setPdfDoc]   = useState(null);
+    const [numPages, setNumPages] = useState(0);
+    const [curPage,  setCurPage]  = useState(1);
+    const [loading,  setLoading]  = useState(false);
+    const [error,    setError]    = useState(null);
+    const [width,    setWidth]    = useState(0);
 
-    // Auto scroll tracking — persists to localStorage + fires event for cards
-    const handleLoad = useCallback(() => {
-        setLoaded(true);
-        if (cleanupRef.current) cleanupRef.current();
+    useLayoutEffect(() => {
+        const el = scrollRef.current;
+        if (!el) return;
+        const measure = () => setWidth(el.clientWidth - 32);
+        measure();
+        const ro = new ResizeObserver(measure);
+        ro.observe(el);
+        return () => ro.disconnect();
+    }, []);
 
-        const attach = () => {
-            try {
-                const iframe = iframeRef.current;
-                if (!iframe) return;
-                const doc = iframe.contentDocument || iframe.contentWindow?.document;
-                const win = iframe.contentWindow;
-                if (!doc || !win) return;
+    useEffect(() => {
+        if (!currentUrl) return;
+        let cancelled = false;
+        setLoading(true);
+        setError(null);
+        setPdfDoc(null);
+        setNumPages(0);
 
-                const compute = () => {
-                    const el       = doc.scrollingElement || doc.documentElement || doc.body;
-                    const scrolled = el?.scrollTop ?? win.scrollY ?? 0;
-                    const total_h  = (el?.scrollHeight ?? 1) - (el?.clientHeight ?? win.innerHeight ?? 1);
-                    const pct      = total_h <= 0 ? 100 : Math.min(100, Math.round((scrolled / total_h) * 100));
-                    persistScrollPct(currentUrl, pct);
-                };
+        const pg = (() => {
+            try { return JSON.parse(localStorage.getItem(PDF_STORAGE_KEY) || '{}')[currentUrl]?.page ?? 1; }
+            catch { return 1; }
+        })();
 
-                win.addEventListener('scroll', compute, { passive: true });
-                const timers = [setTimeout(compute, 400), setTimeout(compute, 1500), setTimeout(compute, 3500)];
-                let obs = null;
-                try {
-                    obs = new MutationObserver(compute);
-                    obs.observe(doc.body || doc.documentElement, { childList: true, subtree: true, attributes: false });
-                } catch { /* ignore */ }
-                compute();
-                cleanupRef.current = () => {
-                    win.removeEventListener('scroll', compute);
-                    obs?.disconnect();
-                    timers.forEach(clearTimeout);
-                };
-            } catch { /* cross-origin – skip */ }
-        };
+        pdfjsLib.getDocument({ url: currentUrl, withCredentials: true }).promise
+            .then(doc => {
+                if (cancelled) return;
+                const safePg = Math.min(Math.max(1, pg), doc.numPages);
+                setPdfDoc(doc);
+                setNumPages(doc.numPages);
+                setCurPage(safePg);
+                jumpQueued.current = safePg > 1;
+                setLoading(false);
+            })
+            .catch(err => {
+                if (cancelled) return;
+                setError('Could not load the PDF. ' + (err?.message || ''));
+                setLoading(false);
+            });
 
-        const timer = setTimeout(attach, 150);
-        return () => clearTimeout(timer);
+        return () => { cancelled = true; };
     }, [currentUrl]);
 
-    useEffect(() => () => { if (cleanupRef.current) cleanupRef.current(); }, []);
+    // Jump to saved page after pages render
+    useEffect(() => {
+        if (!jumpQueued.current || !pdfDoc || curPage < 2) return;
+        const el = document.getElementById(`cd-pdf-page-${curPage}`);
+        if (el) { el.scrollIntoView({ behavior: 'instant' }); jumpQueued.current = false; }
+    });
+
+    useEffect(() => {
+        if (currentUrl && numPages > 0) persistScrollPct(currentUrl, Math.round((curPage / numPages) * 100), curPage, numPages);
+    }, [currentUrl, curPage, numPages]);
+
+    const onPageVisible = useCallback((n) => setCurPage(n), []);
+
+    const goTo = useCallback((raw) => {
+        const p  = Math.min(Math.max(1, Number(raw) || 1), numPages);
+        const el = document.getElementById(`cd-pdf-page-${p}`);
+        if (el) el.scrollIntoView({ behavior: 'smooth' });
+        setCurPage(p);
+    }, [numPages]);
+
+    const pct      = numPages > 0 ? Math.round((curPage / numPages) * 100) : 0;
+    const barColor = pct >= 100 ? '#10B981' : pct >= 70 ? '#F59E0B' : '#007BFF';
 
     return (
         <div className="flex h-full flex-col">
 
             {/* ── Header ── */}
             <div className="flex shrink-0 items-center gap-x-3 border-b border-gray-200 px-5 py-3 dark:border-gray-700">
-
-                {/* PDF icon */}
                 <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-red-50 dark:bg-red-500/10">
                     <FaFilePdf size={14} className="text-red-500 dark:text-red-400" />
                 </div>
-
-                {/* Title */}
                 <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-semibold text-gray-900 dark:text-gray-100">
                         {inLanguage(rtl, item.nameAr, item.nameFr)}
                     </p>
                 </div>
 
-                {/* FR / AR switcher */}
                 {item.pdfFrUrl && item.pdfArUrl && (
                     <div className="inline-flex rounded-xl border border-gray-200 bg-gray-100 p-0.5 dark:border-gray-600 dark:bg-gray-700">
                         {[{ lang: 'fr', label: 'FR' }, { lang: 'ar', label: 'AR' }].map(({ lang: l, label }) => (
                             <button key={l} type="button" onClick={() => onLangChange(l)}
                                 className={`rounded-[10px] px-3 py-1 text-xs font-semibold transition-colors ${
-                                    lang === l
-                                        ? 'bg-white text-gray-900 shadow-sm dark:bg-gray-600 dark:text-gray-100'
-                                        : 'text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-100'
+                                    lang === l ? 'bg-white text-gray-900 shadow-sm dark:bg-gray-600 dark:text-gray-100'
+                                              : 'text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-100'
                                 }`}>
                                 {label}
                             </button>
@@ -708,33 +782,76 @@ function PdfViewerContent({ item, lang, rtl, t, onLangChange, onClose }) {
                     </div>
                 )}
 
-                {/* Close */}
                 <button type="button" onClick={onClose} aria-label={t('common.close')}
                     className="shrink-0 rounded-xl p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-700 dark:hover:text-gray-200">
                     <FaXmark size={16} />
                 </button>
             </div>
 
-            {/* ── PDF iframe ── */}
-            <div className="relative min-h-0 flex-1 overflow-hidden bg-gray-100 dark:bg-gray-900">
-                {!loaded && (
-                    <div className="absolute inset-0 flex items-center justify-center">
-                        <svg className="h-7 w-7 animate-spin text-[#007BFF]" fill="none" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+            {/* ── Scrollable pages ── */}
+            <div
+                ref={scrollRef}
+                className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden bg-gray-100 px-4 py-4 dark:bg-gray-950"
+                style={{ scrollSnapType: 'y mandatory' }}
+            >
+                {loading && (
+                    <div className="flex h-64 items-center justify-center">
+                        <svg className="h-8 w-8 animate-spin text-[#007BFF]" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
                         </svg>
                     </div>
                 )}
-                <iframe
-                    ref={iframeRef}
-                    key={`${item.id}-${lang}`}
-                    src={currentUrl ? `${currentUrl}#zoom=page-width&toolbar=1` : undefined}
-                    className="border-0"
-                    style={{ display: 'block', width: '100%', height: '100%', minHeight: '100%' }}
-                    title={inLanguage(rtl, item.nameAr, item.nameFr)}
-                    onLoad={handleLoad}
-                />
+                {error && (
+                    <div className="flex h-64 flex-col items-center justify-center gap-y-2 text-center">
+                        <p className="text-sm font-semibold text-red-500">{error}</p>
+                        <a href={currentUrl} target="_blank" rel="noreferrer" className="text-xs text-[#007BFF] underline">
+                            Open directly in browser
+                        </a>
+                    </div>
+                )}
+                {pdfDoc && width > 0 && (
+                    <div className="mx-auto flex max-w-5xl flex-col gap-y-6">
+                        {Array.from({ length: numPages }, (_, i) => i + 1).map(n => (
+                            <div
+                                key={`${currentUrl}-${n}`}
+                                style={{ scrollSnapAlign: 'start', scrollMarginTop: '8px' }}
+                            >
+                                <PdfCanvas
+                                    pdfDoc={pdfDoc}
+                                    pageNum={n}
+                                    width={width}
+                                    onVisible={onPageVisible}
+                                />
+                            </div>
+                        ))}
+                    </div>
+                )}
             </div>
+
+            {/* ── Bottom nav ── */}
+            {numPages > 0 && (
+                <div className="flex h-12 shrink-0 items-center justify-between border-t border-gray-200 bg-white px-4 dark:border-gray-700 dark:bg-gray-800">
+                    <button type="button" onClick={() => goTo(curPage - 1)} disabled={curPage <= 1}
+                        className="flex items-center gap-x-1.5 rounded-lg px-3 py-1.5 text-sm text-gray-600 transition hover:bg-gray-100 disabled:opacity-30 dark:text-gray-300 dark:hover:bg-gray-700">
+                        <FaChevronLeft size={11} /> {t('common.prev', 'Prev')}
+                    </button>
+                    <div className="flex items-center gap-x-1.5">
+                        <input type="number" min={1} max={numPages} value={curPage}
+                            onChange={e => goTo(e.target.value)}
+                            className="w-10 rounded-lg border border-gray-200 bg-gray-50 px-1 py-0.5 text-center text-xs font-semibold text-gray-800 outline-none focus:border-[#007BFF] dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
+                        />
+                        <span className="text-xs text-gray-400">/ {numPages}</span>
+                        <span className="rounded-full px-2 py-0.5 text-[11px] font-bold text-white" style={{ backgroundColor: barColor }}>
+                            {pct}%
+                        </span>
+                    </div>
+                    <button type="button" onClick={() => goTo(curPage + 1)} disabled={curPage >= numPages}
+                        className="flex items-center gap-x-1.5 rounded-lg px-3 py-1.5 text-sm text-gray-600 transition hover:bg-gray-100 disabled:opacity-30 dark:text-gray-300 dark:hover:bg-gray-700">
+                        {t('common.next', 'Next')} <FaChevronRight size={11} />
+                    </button>
+                </div>
+            )}
         </div>
     );
 }

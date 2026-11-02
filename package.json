@@ -24,6 +24,7 @@
     },
     "dependencies": {
         "i18next": "^26.5.2",
+        "pdfjs-dist": "4.4.168",
         "react-i18next": "^17.1.0",
         "react-icons": "^5.5.0"
     }
