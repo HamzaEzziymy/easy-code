@@ -184,7 +184,7 @@ export default function PdfViewer({ url, title, show, onClose }) {
             </div>
 
             {/* ── PDF iframe ───────────────────────────────────────────────── */}
-            <div className="relative min-h-0 flex-1">
+            <div className="relative min-h-0 flex-1 overflow-hidden">
                 {/* Loading spinner */}
                 {!loaded && (
                     <div className="absolute inset-0 flex flex-col items-center justify-center gap-y-3 bg-gray-100 dark:bg-gray-900">
@@ -211,11 +211,11 @@ export default function PdfViewer({ url, title, show, onClose }) {
 
                 <iframe
                     ref={iframeRef}
-                    src={url}
+                    src={url ? `${url}#zoom=page-width&toolbar=1` : undefined}
                     title={title}
                     onLoad={handleLoad}
-                    className="h-full w-full border-0"
-                    style={{ display: 'block', minHeight: '100%' }}
+                    className="border-0"
+                    style={{ display: 'block', width: '100%', height: '100%', minHeight: '100%' }}
                 />
             </div>
         </div>

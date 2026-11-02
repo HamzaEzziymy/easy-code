@@ -716,7 +716,7 @@ function PdfViewerContent({ item, lang, rtl, t, onLangChange, onClose }) {
             </div>
 
             {/* ── PDF iframe ── */}
-            <div className="relative min-h-0 flex-1 bg-gray-100 dark:bg-gray-900">
+            <div className="relative min-h-0 flex-1 overflow-hidden bg-gray-100 dark:bg-gray-900">
                 {!loaded && (
                     <div className="absolute inset-0 flex items-center justify-center">
                         <svg className="h-7 w-7 animate-spin text-[#007BFF]" fill="none" viewBox="0 0 24 24">
@@ -728,8 +728,9 @@ function PdfViewerContent({ item, lang, rtl, t, onLangChange, onClose }) {
                 <iframe
                     ref={iframeRef}
                     key={`${item.id}-${lang}`}
-                    src={currentUrl}
-                    className="h-full w-full border-0"
+                    src={currentUrl ? `${currentUrl}#zoom=page-width&toolbar=1` : undefined}
+                    className="border-0"
+                    style={{ display: 'block', width: '100%', height: '100%', minHeight: '100%' }}
                     title={inLanguage(rtl, item.nameAr, item.nameFr)}
                     onLoad={handleLoad}
                 />
