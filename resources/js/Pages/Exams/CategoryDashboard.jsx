@@ -6,8 +6,9 @@ import DangerButton from '@/Components/DangerButton';
 import Modal from '@/Components/Modal';
 import PrimaryButton from '@/Components/PrimaryButton';
 import SecondaryButton from '@/Components/SecondaryButton';
+import { PdfProgressBar } from '@/Components/PdfViewer';
 import { Head, router, usePage } from '@inertiajs/react';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FaEdit, FaSearch } from 'react-icons/fa';
 import {
@@ -32,6 +33,44 @@ const STATUS_COLORS = {
     draft:     'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300',
     archived:  'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400',
 };
+
+/* ─── PDF progress helpers ─────────────────────────────────────────────────── */
+const PDF_STORAGE_KEY = 'pdf_progress';
+
+function readProgress() {
+    try { return JSON.parse(localStorage.getItem(PDF_STORAGE_KEY) || '{}'); } catch { return {}; }
+}
+
+function saveProgress(url, page, total) {
+    const all = readProgress();
+    all[url] = { ...(all[url] || {}), page, total };
+    localStorage.setItem(PDF_STORAGE_KEY, JSON.stringify(all));
+}
+
+function persistScrollPct(url, pct) {
+    if (!url) return;
+    const all = readProgress();
+    all[url] = { ...(all[url] || {}), scrollPct: pct };
+    localStorage.setItem(PDF_STORAGE_KEY, JSON.stringify(all));
+    // Notify same-tab listeners (storage events don't fire for same-tab writes)
+    window.dispatchEvent(new Event('pdf-progress-update'));
+}
+
+function getProgress(url) {
+    if (!url) return null;
+    const entry = readProgress()[url];
+    return entry && entry.total > 0 ? entry : null;
+}
+
+function progressPct(url) {
+    const all = readProgress();
+    const entry = all[url];
+    if (!entry) return null;
+    // Prefer scroll-based pct if available
+    if (entry.scrollPct !== undefined) return entry.scrollPct;
+    if (entry.page && entry.total > 0) return Math.round((entry.page / entry.total) * 100);
+    return null;
+}
 
 /* Segmented filter — identical to Questions/Index */
 function Segmented({ label, value, options, onChange }) {
@@ -78,6 +117,7 @@ export default function CategoryDashboard({ category, courses, tests, exams, cat
     const [editingTest,     setEditingTest]     = useState(null);
     const [examFormOpen,    setExamFormOpen]    = useState(false);
     const [editingExam,     setEditingExam]     = useState(null);
+    const [pdfViewer,       setPdfViewer]       = useState(null); // { item, lang }
     const [deleting,        setDeleting]        = useState(null);
     const [notice,          setNotice]          = useState(null);
     const [page,            setPage]            = useState(1);
@@ -297,6 +337,9 @@ export default function CategoryDashboard({ category, courses, tests, exams, cat
                                             item={item}
                                             rtl={rtl}
                                             t={t}
+                                            onView={item._type === 'course' && (item.pdfFrUrl || item.pdfArUrl)
+                                                ? (it) => setPdfViewer({ item: it, lang: it._openLang ?? (it.pdfFrUrl ? 'fr' : 'ar') })
+                                                : null}
                                             onEdit={
                                                 item._type === 'course' ? openEditCourse :
                                                 item._type === 'test'   ? openEditTest   :
@@ -405,6 +448,25 @@ export default function CategoryDashboard({ category, courses, tests, exams, cat
                 </div>
             </Modal>
 
+            {/* ── PDF Viewer modal ───────────────────────────────────── */}
+            <Modal
+                show={pdfViewer !== null}
+                maxWidth="5xl"
+                fullHeight
+                onClose={() => setPdfViewer(null)}
+            >
+                {pdfViewer && (
+                    <PdfViewerContent
+                        item={pdfViewer.item}
+                        lang={pdfViewer.lang}
+                        rtl={rtl}
+                        t={t}
+                        onLangChange={(lang) => setPdfViewer(v => ({ ...v, lang }))}
+                        onClose={() => setPdfViewer(null)}
+                    />
+                )}
+            </Modal>
+
             {/* ── Course form ────────────────────────────────────────────── */}
             <CourseForm
                 show={courseFormOpen}
@@ -457,7 +519,7 @@ export default function CategoryDashboard({ category, courses, tests, exams, cat
 }
 
 /* ─── Item Card ────────────────────────────────────────────────────────────── */
-function ItemCard({ item, rtl, t, onEdit, onDelete }) {
+function ItemCard({ item, rtl, t, onView, onEdit, onDelete }) {
     const title = inLanguage(rtl, item.nameAr ?? item.titleAr, item.nameFr ?? item.titleFr);
 
     const TYPE_META = {
@@ -514,20 +576,22 @@ function ItemCard({ item, rtl, t, onEdit, onDelete }) {
                     </div>
                 )}
 
-                {/* PDFs for courses */}
+                {/* PDF progress bars — courses only */}
                 {item._type === 'course' && (item.pdfFrUrl || item.pdfArUrl) && (
-                    <div className="flex flex-wrap gap-1.5">
+                    <div className="flex gap-x-2">
                         {item.pdfFrUrl && (
-                            <a href={item.pdfFrUrl} target="_blank" rel="noreferrer"
-                                className="inline-flex items-center gap-x-1 rounded-md border border-gray-200 px-2 py-0.5 text-xs font-medium text-gray-600 transition hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700">
-                                <FaFilePdf size={10} className="text-red-500" /> PDF FR
-                            </a>
+                            <PdfProgressBar
+                                url={item.pdfFrUrl}
+                                label="FR"
+                                onClick={() => onView && onView({ ...item, _openLang: 'fr' })}
+                            />
                         )}
                         {item.pdfArUrl && (
-                            <a href={item.pdfArUrl} target="_blank" rel="noreferrer"
-                                className="inline-flex items-center gap-x-1 rounded-md border border-gray-200 px-2 py-0.5 text-xs font-medium text-gray-600 transition hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700">
-                                <FaFilePdf size={10} className="text-red-500" /> PDF AR
-                            </a>
+                            <PdfProgressBar
+                                url={item.pdfArUrl}
+                                label="AR"
+                                onClick={() => onView && onView({ ...item, _openLang: 'ar' })}
+                            />
                         )}
                     </div>
                 )}
@@ -552,6 +616,123 @@ function ItemCard({ item, rtl, t, onEdit, onDelete }) {
                         )}
                     </div>
                 )}
+            </div>
+        </div>
+    );
+}
+
+/* ─── PDF Viewer Content ───────────────────────────────────────────────────── */
+function PdfViewerContent({ item, lang, rtl, t, onLangChange, onClose }) {
+    const currentUrl = lang === 'fr' ? item.pdfFrUrl : item.pdfArUrl;
+    const iframeRef  = useRef(null);
+    const cleanupRef = useRef(null);
+    const [loaded, setLoaded] = useState(false);
+
+    // Reset loaded state on URL change
+    useEffect(() => { setLoaded(false); }, [currentUrl]);
+
+    // Auto scroll tracking — persists to localStorage + fires event for cards
+    const handleLoad = useCallback(() => {
+        setLoaded(true);
+        if (cleanupRef.current) cleanupRef.current();
+
+        const attach = () => {
+            try {
+                const iframe = iframeRef.current;
+                if (!iframe) return;
+                const doc = iframe.contentDocument || iframe.contentWindow?.document;
+                const win = iframe.contentWindow;
+                if (!doc || !win) return;
+
+                const compute = () => {
+                    const el       = doc.scrollingElement || doc.documentElement || doc.body;
+                    const scrolled = el?.scrollTop ?? win.scrollY ?? 0;
+                    const total_h  = (el?.scrollHeight ?? 1) - (el?.clientHeight ?? win.innerHeight ?? 1);
+                    const pct      = total_h <= 0 ? 100 : Math.min(100, Math.round((scrolled / total_h) * 100));
+                    persistScrollPct(currentUrl, pct);
+                };
+
+                win.addEventListener('scroll', compute, { passive: true });
+                const timers = [setTimeout(compute, 400), setTimeout(compute, 1500), setTimeout(compute, 3500)];
+                let obs = null;
+                try {
+                    obs = new MutationObserver(compute);
+                    obs.observe(doc.body || doc.documentElement, { childList: true, subtree: true, attributes: false });
+                } catch { /* ignore */ }
+                compute();
+                cleanupRef.current = () => {
+                    win.removeEventListener('scroll', compute);
+                    obs?.disconnect();
+                    timers.forEach(clearTimeout);
+                };
+            } catch { /* cross-origin – skip */ }
+        };
+
+        const timer = setTimeout(attach, 150);
+        return () => clearTimeout(timer);
+    }, [currentUrl]);
+
+    useEffect(() => () => { if (cleanupRef.current) cleanupRef.current(); }, []);
+
+    return (
+        <div className="flex h-full flex-col">
+
+            {/* ── Header ── */}
+            <div className="flex shrink-0 items-center gap-x-3 border-b border-gray-200 px-5 py-3 dark:border-gray-700">
+
+                {/* PDF icon */}
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-red-50 dark:bg-red-500/10">
+                    <FaFilePdf size={14} className="text-red-500 dark:text-red-400" />
+                </div>
+
+                {/* Title */}
+                <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold text-gray-900 dark:text-gray-100">
+                        {inLanguage(rtl, item.nameAr, item.nameFr)}
+                    </p>
+                </div>
+
+                {/* FR / AR switcher */}
+                {item.pdfFrUrl && item.pdfArUrl && (
+                    <div className="inline-flex rounded-xl border border-gray-200 bg-gray-100 p-0.5 dark:border-gray-600 dark:bg-gray-700">
+                        {[{ lang: 'fr', label: 'FR' }, { lang: 'ar', label: 'AR' }].map(({ lang: l, label }) => (
+                            <button key={l} type="button" onClick={() => onLangChange(l)}
+                                className={`rounded-[10px] px-3 py-1 text-xs font-semibold transition-colors ${
+                                    lang === l
+                                        ? 'bg-white text-gray-900 shadow-sm dark:bg-gray-600 dark:text-gray-100'
+                                        : 'text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-100'
+                                }`}>
+                                {label}
+                            </button>
+                        ))}
+                    </div>
+                )}
+
+                {/* Close */}
+                <button type="button" onClick={onClose} aria-label={t('common.close')}
+                    className="shrink-0 rounded-xl p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-700 dark:hover:text-gray-200">
+                    <FaXmark size={16} />
+                </button>
+            </div>
+
+            {/* ── PDF iframe ── */}
+            <div className="relative min-h-0 flex-1 bg-gray-100 dark:bg-gray-900">
+                {!loaded && (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                        <svg className="h-7 w-7 animate-spin text-[#007BFF]" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                        </svg>
+                    </div>
+                )}
+                <iframe
+                    ref={iframeRef}
+                    key={`${item.id}-${lang}`}
+                    src={currentUrl}
+                    className="h-full w-full border-0"
+                    title={inLanguage(rtl, item.nameAr, item.nameFr)}
+                    onLoad={handleLoad}
+                />
             </div>
         </div>
     );

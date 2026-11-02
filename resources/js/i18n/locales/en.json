@@ -482,7 +482,9 @@
             "created": "Course created.",
             "updated": "Course updated.",
             "deleted": "Course deleted."
-        }
+        },
+        "viewPdf": "View PDF",
+        "page": "Page"
     },
     "tests": {
         "title": "Tests",

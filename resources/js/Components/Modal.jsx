@@ -28,6 +28,7 @@ export default function Modal({
         '3xl': 'sm:max-w-3xl',
         '4xl': 'sm:max-w-4xl',
         '5xl': 'sm:max-w-5xl',
+        screen: 'sm:max-w-[96vw]',
     }[maxWidth];
 
     return (
@@ -42,7 +43,7 @@ export default function Modal({
                 as="div"
                 id="modal"
                 className={`fixed inset-0 z-50 flex transform items-center transition-all ${
-                    fullHeight ? 'overflow-hidden p-4 sm:p-6 lg:p-8' : 'overflow-y-auto px-4 py-6 sm:px-0'
+                    fullHeight ? 'overflow-hidden p-2 sm:p-3' : 'overflow-y-auto px-4 py-6 sm:px-0'
                 }`}
                 onClose={close}
             >
@@ -74,7 +75,7 @@ export default function Modal({
                     <DialogPanel
                         className={`transform bg-white shadow-xl transition-all dark:bg-gray-800 ${
                             fullHeight
-                                ? 'flex h-[80dvh] max-h-[calc(100dvh_-_2rem)] w-full flex-col overflow-hidden rounded-2xl sm:mx-auto sm:max-h-[calc(100dvh_-_3rem)] sm:max-w-[60%] lg:max-h-[calc(100dvh_-_4rem)]'
+                                ? 'flex h-[95dvh] max-h-[95dvh] w-full flex-col overflow-hidden rounded-2xl sm:mx-auto sm:max-w-[65vw]'
                                 : `mb-6 overflow-hidden rounded-lg sm:mx-auto sm:w-full ${maxWidthClass}`
                         }`}
                     >

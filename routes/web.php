@@ -136,6 +136,10 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
                     'nameFr' => $c->name_fr,
                 ]),
             'questions' => \App\Models\Question::where('is_active', true)
+                ->where(fn ($q) => $q
+                    ->where('license_category_id', $category->id)
+                    ->orWhereNull('license_category_id')
+                )
                 ->with(['translations', 'licenseCategory'])
                 ->get()
                 ->map(fn ($q) => [

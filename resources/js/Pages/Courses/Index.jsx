@@ -1,6 +1,7 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import CourseForm from './CourseForm';
 import Modal from '@/Components/Modal';
+import PdfViewer, { PdfProgressBar } from '@/Components/PdfViewer';
 import PrimaryButton from '@/Components/PrimaryButton';
 import { Head, router, usePage } from '@inertiajs/react';
 import { useEffect, useRef, useState } from 'react';
@@ -8,7 +9,6 @@ import { useTranslation } from 'react-i18next';
 import {
     FaBook,
     FaEdit,
-    FaFilePdf,
     FaInbox,
     FaPlus,
     FaSearch,
@@ -37,6 +37,7 @@ export default function Index({ courses, filters, stats, categories }) {
     const [editing, setEditing]   = useState(null);
     const [deleting, setDeleting] = useState(null);
     const [notice, setNotice]     = useState(null);
+    const [pdfViewer, setPdfViewer] = useState(null); // { url, title }
     const firstRender = useRef(true);
 
     const query = {
@@ -233,16 +234,18 @@ export default function Index({ courses, filters, stats, categories }) {
                                             <td className={cell}>
                                                 <div className="flex items-center gap-x-2">
                                                     {course.pdfFrUrl && (
-                                                        <a href={course.pdfFrUrl} target="_blank" rel="noreferrer"
-                                                            className="inline-flex items-center gap-x-1 rounded-lg border border-gray-200 px-2 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700">
-                                                            <FaFilePdf size={11} className="text-red-500" /> FR
-                                                        </a>
+                                                        <PdfProgressBar
+                                                            url={course.pdfFrUrl}
+                                                            label="FR"
+                                                            onClick={() => setPdfViewer({ url: course.pdfFrUrl, title: `${inLanguage(rtl, course.nameAr, course.nameFr)} — FR` })}
+                                                        />
                                                     )}
                                                     {course.pdfArUrl && (
-                                                        <a href={course.pdfArUrl} target="_blank" rel="noreferrer"
-                                                            className="inline-flex items-center gap-x-1 rounded-lg border border-gray-200 px-2 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700">
-                                                            <FaFilePdf size={11} className="text-red-500" /> AR
-                                                        </a>
+                                                        <PdfProgressBar
+                                                            url={course.pdfArUrl}
+                                                            label="AR"
+                                                            onClick={() => setPdfViewer({ url: course.pdfArUrl, title: `${inLanguage(rtl, course.nameAr, course.nameFr)} — AR` })}
+                                                        />
                                                     )}
                                                     {!course.pdfFrUrl && !course.pdfArUrl && (
                                                         <span className="text-xs text-gray-400">—</span>
@@ -356,6 +359,14 @@ export default function Index({ courses, filters, stats, categories }) {
                     </div>
                 </div>
             </Modal>
+
+            {/* PDF Viewer overlay */}
+            <PdfViewer
+                show={pdfViewer !== null}
+                url={pdfViewer?.url}
+                title={pdfViewer?.title}
+                onClose={() => setPdfViewer(null)}
+            />
         </AuthenticatedLayout>
     );
 }
