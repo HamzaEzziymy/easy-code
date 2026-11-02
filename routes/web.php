@@ -8,6 +8,10 @@ use App\Http\Controllers\Admin\TestController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Student\DashboardController as StudentDashboard;
+use App\Models\LicenseCategory;
+use App\Models\Question;
+use App\Models\Student;
+use App\Models\User;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -22,7 +26,14 @@ Route::get('/', function () {
 });
 
 Route::get('/dashboard', function () {
-    return Inertia::render('Dashboard');
+    return Inertia::render('Dashboard', [
+        'stats' => [
+            'administrators' => \App\Models\User::count(),
+            'trainees'       => \App\Models\Student::count(),
+            'categories'     => \App\Models\LicenseCategory::count(),
+            'questions'      => \App\Models\Question::count(),
+        ],
+    ]);
 })->middleware(['auth', 'verified', 'role:admin'])->name('dashboard');
 
 Route::get('/student', StudentDashboard::class)
@@ -95,11 +106,12 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
             'nameFr'         => $e->title_fr,
             'nameAr'         => $e->title_ar,
             'descriptionFr'  => $e->description,
-            'descriptionAr'  => $e->description,
+            'descriptionAr'  => $e->description_ar,
             'status'         => $e->status,
             'duration'       => $e->duration_minutes,
             'questionsCount' => $e->examQuestions()->count(),
-            'coverUrl'       => null,
+            'questionIds'    => $e->examQuestions()->orderBy('question_order')->pluck('question_id')->values()->all(),
+            'coverUrl'       => $e->cover_path ? route('exams.file', [$e, 'cover']).'?v='.$e->updated_at->timestamp : null,
         ];
 
         return \Inertia\Inertia::render('Exams/CategoryDashboard', [
@@ -148,13 +160,21 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::delete('/questions/{question}', [QuestionController::class, 'destroy'])->name('questions.destroy');
     Route::get('/questions/{question}/media/{slot}', [QuestionController::class, 'media'])->name('questions.media');
 
+    // Exams
+    Route::get('/exams/{exam}/file/{slot}', [\App\Http\Controllers\Admin\ExamController::class, 'file'])->name('exams.file');
+    Route::post('/exams', [\App\Http\Controllers\Admin\ExamController::class, 'store'])->name('exams.store');
+    Route::patch('/exams/{exam}', [\App\Http\Controllers\Admin\ExamController::class, 'update'])->name('exams.update');
+    Route::delete('/exams/{exam}', [\App\Http\Controllers\Admin\ExamController::class, 'destroy'])->name('exams.destroy');
+
     // Courses
+    Route::redirect('/courses', '/dashboard')->name('courses.index');
     Route::get('/courses/{course}/file/{slot}', [CourseController::class, 'file'])->name('courses.file');
     Route::post('/courses', [CourseController::class, 'store'])->name('courses.store');
     Route::patch('/courses/{course}', [CourseController::class, 'update'])->name('courses.update');
     Route::delete('/courses/{course}', [CourseController::class, 'destroy'])->name('courses.destroy');
 
     // Tests
+    Route::redirect('/tests', '/dashboard')->name('tests.index');
     Route::get('/tests/{test}/file/{slot}', [TestController::class, 'file'])->name('tests.file');
     Route::post('/tests', [TestController::class, 'store'])->name('tests.store');
     Route::patch('/tests/{test}', [TestController::class, 'update'])->name('tests.update');

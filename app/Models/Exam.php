@@ -15,9 +15,11 @@ class Exam extends Model
         'title_ar',
         'title_fr',
         'description',
+        'description_ar',
         'duration_minutes',
         'pass_percentage',
         'status',
+        'cover_path',
     ];
 
     protected function casts(): array

@@ -11,49 +11,9 @@ use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
-use Inertia\Inertia;
-use Inertia\Response;
 
 class CourseController extends Controller
-{
-    public function index(Request $request): Response
-    {
-        $categoryId = $this->categoryId($request);
-        $status     = $this->choice($request, 'status', ['draft', 'published', 'archived']);
-        $search     = trim((string) $request->query('search', ''));
-
-        $courses = Course::query()
-            ->with('licenseCategory')
-            ->when($search !== '', function ($query) use ($search) {
-                $like = '%'.str_replace(['%', '_'], ['\%', '\_'], $search).'%';
-                $query->where(fn ($q) => $q
-                    ->where('name_fr', 'like', $like)
-                    ->orWhere('name_ar', 'like', $like));
-            })
-            ->when($categoryId, fn ($q) => $q->where('license_category_id', $categoryId))
-            ->when($status, fn ($q) => $q->where('status', $status))
-            ->latest()
-            ->paginate(12)
-            ->withQueryString()
-            ->through(fn (Course $course) => $this->present($course));
-
-        return Inertia::render('Courses/Index', [
-            'courses'    => $courses,
-            'filters'    => [
-                'search'   => $search,
-                'category' => $categoryId,
-                'status'   => $status,
-            ],
-            'stats'      => [
-                'total'     => Course::count(),
-                'published' => Course::where('status', 'published')->count(),
-                'draft'     => Course::where('status', 'draft')->count(),
-            ],
-            'categories' => $this->categoriesList(),
-        ]);
-    }
-
-    public function store(Request $request): RedirectResponse
+{    public function store(Request $request): RedirectResponse
     {
         $data = $this->validate($request);
 
@@ -64,7 +24,7 @@ class CourseController extends Controller
         $course->pdf_fr_path = $this->storeFile($request, 'pdf_fr', 'courses/pdfs');
         $course->save();
 
-        return redirect()->route('courses.index')->with('success', 'created');
+        return redirect()->route('exams.category', $course->license_category_id)->with('success', 'created');
     }
 
     public function update(Request $request, Course $course): RedirectResponse
@@ -78,11 +38,13 @@ class CourseController extends Controller
 
         $course->save();
 
-        return redirect()->route('courses.index')->with('success', 'updated');
+        return redirect()->route('exams.category', $course->license_category_id)->with('success', 'updated');
     }
 
     public function destroy(Course $course): RedirectResponse
     {
+        $categoryId = $course->license_category_id;
+
         try {
             $course->delete();
         } catch (QueryException) {
@@ -95,7 +57,7 @@ class CourseController extends Controller
             }
         }
 
-        return redirect()->route('courses.index')->with('success', 'deleted');
+        return redirect()->route('exams.category', $categoryId)->with('success', 'deleted');
     }
 
     /** Serve a private file (cover image or PDF) to authenticated admins only. */

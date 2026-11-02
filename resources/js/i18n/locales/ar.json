@@ -518,6 +518,7 @@
         "searchQuestions": "ابحث عن سؤال…",
         "noQuestionsFound": "لم يتم العثور على أسئلة",
         "noSelectedQuestions": "لم يتم اختيار أي سؤال",
+        "dragToReorder": "اسحب لإعادة الترتيب",
         "duration": "المدة (دقيقة)",
         "minutes": "د",
         "passPercentage": "نسبة النجاح (%)",

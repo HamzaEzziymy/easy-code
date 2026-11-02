@@ -221,22 +221,26 @@ export default function Index({ users, filters, stats }) {
                         </div>
                     )}
 
-                    <div className="grid gap-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800 sm:grid-cols-2 lg:grid-cols-4">
+                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                         {[
-                            ['total', t('users.total')],
-                            ['active', t('users.active')],
-                            ['inactive', t('users.inactive')],
-                            ['signedIn', t('users.signedIn')],
-                        ].map(([key, label]) => (
-                            <div key={key} className="flex items-baseline gap-x-2">
-                                <span className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
-                                    {stats[key]}
-                                </span>
-                                <span className="text-xs font-medium uppercase tracking-wide text-gray-600 dark:text-gray-400">
-                                    {label}
-                                </span>
-                            </div>
-                        ))}
+                            ['total',    t('users.total'),    'blue'],
+                            ['active',   t('users.active'),   'indigo'],
+                            ['inactive', t('users.inactive'), 'violet'],
+                            ['signedIn', t('users.signedIn'), 'emerald'],
+                        ].map(([key, label, color]) => {
+                            const styles = {
+                                blue:    { card: 'border-blue-200 bg-blue-50 dark:border-blue-500/30 dark:bg-blue-500/10',       num: 'text-blue-700 dark:text-blue-300',     lbl: 'text-blue-600 dark:text-blue-400'     },
+                                indigo:  { card: 'border-indigo-200 bg-indigo-50 dark:border-indigo-500/30 dark:bg-indigo-500/10', num: 'text-indigo-700 dark:text-indigo-300', lbl: 'text-indigo-600 dark:text-indigo-400' },
+                                violet:  { card: 'border-violet-200 bg-violet-50 dark:border-violet-500/30 dark:bg-violet-500/10', num: 'text-violet-700 dark:text-violet-300', lbl: 'text-violet-600 dark:text-violet-400' },
+                                emerald: { card: 'border-emerald-200 bg-emerald-50 dark:border-emerald-500/30 dark:bg-emerald-500/10', num: 'text-emerald-700 dark:text-emerald-300', lbl: 'text-emerald-600 dark:text-emerald-400' },
+                            }[color];
+                            return (
+                                <div key={key} className={`rounded-2xl border p-4 ${styles.card}`}>
+                                    <p className={`text-3xl font-bold ${styles.num}`}>{stats[key]}</p>
+                                    <p className={`mt-1 text-sm font-medium ${styles.lbl}`}>{label}</p>
+                                </div>
+                            );
+                        })}
                     </div>
 
                     <div className="space-y-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">

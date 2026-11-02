@@ -113,17 +113,24 @@ export default function Index({ courses, filters, stats, categories }) {
                     )}
 
                     {/* Stat cards */}
-                    <div className={`${panel} grid grid-cols-1 divide-y divide-gray-100 sm:grid-cols-3 sm:divide-x sm:divide-y-0`}>
+                    <div className="grid gap-4 sm:grid-cols-3">
                         {[
-                            ['total',     t('courses.total')],
-                            ['published', t('courses.published')],
-                            ['draft',     t('courses.draft')],
-                        ].map(([key, label]) => (
-                            <div key={key} className="flex items-baseline gap-x-2 px-5 py-4">
-                                <span className="text-2xl font-semibold text-gray-900 dark:text-gray-100">{stats[key]}</span>
-                                <span className="text-sm font-medium text-gray-600 dark:text-gray-300">{label}</span>
-                            </div>
-                        ))}
+                            ['total',     t('courses.total'),     'blue'],
+                            ['published', t('courses.published'), 'emerald'],
+                            ['draft',     t('courses.draft'),     'indigo'],
+                        ].map(([key, label, color]) => {
+                            const styles = {
+                                blue:    { card: 'border-blue-200 bg-blue-50 dark:border-blue-500/30 dark:bg-blue-500/10',       num: 'text-blue-700 dark:text-blue-300',     lbl: 'text-blue-600 dark:text-blue-400'     },
+                                emerald: { card: 'border-emerald-200 bg-emerald-50 dark:border-emerald-500/30 dark:bg-emerald-500/10', num: 'text-emerald-700 dark:text-emerald-300', lbl: 'text-emerald-600 dark:text-emerald-400' },
+                                indigo:  { card: 'border-indigo-200 bg-indigo-50 dark:border-indigo-500/30 dark:bg-indigo-500/10', num: 'text-indigo-700 dark:text-indigo-300', lbl: 'text-indigo-600 dark:text-indigo-400' },
+                            }[color];
+                            return (
+                                <div key={key} className={`rounded-2xl border p-4 ${styles.card}`}>
+                                    <p className={`text-3xl font-bold ${styles.num}`}>{stats[key]}</p>
+                                    <p className={`mt-1 text-sm font-medium ${styles.lbl}`}>{label}</p>
+                                </div>
+                            );
+                        })}
                     </div>
 
                     {/* Filters */}

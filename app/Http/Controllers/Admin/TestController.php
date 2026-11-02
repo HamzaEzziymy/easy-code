@@ -14,55 +14,15 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
-use Inertia\Inertia;
-use Inertia\Response;
 
 class TestController extends Controller
-{
-    public function index(Request $request): Response
-    {
-        $categoryId = $this->categoryId($request);
-        $status     = $this->choice($request, 'status', ['draft', 'published', 'archived']);
-        $search     = trim((string) $request->query('search', ''));
-
-        $tests = Test::query()
-            ->with('licenseCategory')
-            ->withCount('questions')
-            ->when($search !== '', function ($query) use ($search) {
-                $like = '%'.str_replace(['%', '_'], ['\%', '\_'], $search).'%';
-                $query->where(fn ($q) => $q
-                    ->where('name_fr', 'like', $like)
-                    ->orWhere('name_ar', 'like', $like));
-            })
-            ->when($categoryId, fn ($q) => $q->where('license_category_id', $categoryId))
-            ->when($status, fn ($q) => $q->where('status', $status))
-            ->latest()
-            ->paginate(12)
-            ->withQueryString()
-            ->through(fn (Test $test) => $this->present($test));
-
-        return Inertia::render('Tests/Index', [
-            'tests'      => $tests,
-            'filters'    => [
-                'search'   => $search,
-                'category' => $categoryId,
-                'status'   => $status,
-            ],
-            'stats'      => [
-                'total'     => Test::count(),
-                'published' => Test::where('status', 'published')->count(),
-                'draft'     => Test::where('status', 'draft')->count(),
-            ],
-            'categories' => $this->categoriesList(),
-            'questions'  => $this->questionsList(),
-        ]);
-    }
-
-    public function store(Request $request): RedirectResponse
+{    public function store(Request $request): RedirectResponse
     {
         $data = $this->validateRequest($request);
 
-        DB::transaction(function () use ($request, $data) {
+        $test = null;
+
+        DB::transaction(function () use ($request, $data, &$test) {
             $test = new Test($data['fields']);
             $test->created_by = $request->user()->id;
             $test->cover_path = $this->storeFile($request, 'cover', 'tests/covers');
@@ -71,7 +31,7 @@ class TestController extends Controller
             $this->syncQuestions($test, $data['question_ids']);
         });
 
-        return redirect()->route('tests.index')->with('success', 'created');
+        return redirect()->route('exams.category', $test->license_category_id)->with('success', 'created');
     }
 
     public function update(Request $request, Test $test): RedirectResponse
@@ -86,11 +46,13 @@ class TestController extends Controller
             $this->syncQuestions($test, $data['question_ids']);
         });
 
-        return redirect()->route('tests.index')->with('success', 'updated');
+        return redirect()->route('exams.category', $test->license_category_id)->with('success', 'updated');
     }
 
     public function destroy(Test $test): RedirectResponse
     {
+        $categoryId = $test->license_category_id;
+
         try {
             $test->delete();
         } catch (QueryException) {
@@ -101,7 +63,7 @@ class TestController extends Controller
             Storage::disk('local')->delete($test->cover_path);
         }
 
-        return redirect()->route('tests.index')->with('success', 'deleted');
+        return redirect()->route('exams.category', $categoryId)->with('success', 'deleted');
     }
 
     public function file(Test $test, string $slot)

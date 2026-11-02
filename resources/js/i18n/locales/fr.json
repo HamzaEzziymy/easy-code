@@ -510,6 +510,7 @@
         "searchQuestions": "Rechercher une question…",
         "noQuestionsFound": "Aucune question trouvée",
         "noSelectedQuestions": "Aucune question sélectionnée",
+        "dragToReorder": "Glisser pour réordonner",
         "duration": "Durée (min)",
         "minutes": "min",
         "passPercentage": "Score de réussite (%)",

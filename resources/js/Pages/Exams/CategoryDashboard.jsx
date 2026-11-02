@@ -1,6 +1,7 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import CourseForm from '@/Pages/Courses/CourseForm';
 import TestForm from '@/Pages/Tests/TestForm';
+import ExamForm from '@/Pages/Exams/ExamForm';
 import DangerButton from '@/Components/DangerButton';
 import Modal from '@/Components/Modal';
 import PrimaryButton from '@/Components/PrimaryButton';
@@ -75,6 +76,8 @@ export default function CategoryDashboard({ category, courses, tests, exams, cat
     const [editingCourse,   setEditingCourse]   = useState(null);
     const [testFormOpen,    setTestFormOpen]    = useState(false);
     const [editingTest,     setEditingTest]     = useState(null);
+    const [examFormOpen,    setExamFormOpen]    = useState(false);
+    const [editingExam,     setEditingExam]     = useState(null);
     const [deleting,        setDeleting]        = useState(null);
     const [notice,          setNotice]          = useState(null);
     const [page,            setPage]            = useState(1);
@@ -133,10 +136,14 @@ export default function CategoryDashboard({ category, courses, tests, exams, cat
     const openEditCourse   = (c) => { setEditingCourse(c); setCourseFormOpen(true); };
     const openCreateTest   = () => { setCreateMenuOpen(false); setEditingTest(null); setTestFormOpen(true); };
     const openEditTest     = (t) => { setEditingTest(t); setTestFormOpen(true); };
+    const openCreateExam   = () => { setCreateMenuOpen(false); setEditingExam(null); setExamFormOpen(true); };
+    const openEditExam     = (e) => { setEditingExam(e); setExamFormOpen(true); };
 
     const confirmDelete = () => {
         if (!deleting) return;
-        const routeName = deleting._type === 'course' ? 'courses.destroy' : 'tests.destroy';
+        const routeName = deleting._type === 'course' ? 'courses.destroy'
+                        : deleting._type === 'exam'   ? 'exams.destroy'
+                        :                               'tests.destroy';
         router.delete(route(routeName, deleting.id), {
             preserveScroll: true,
             onFinish: () => setDeleting(null),
@@ -184,7 +191,9 @@ export default function CategoryDashboard({ category, courses, tests, exams, cat
                         <div className={`rounded-2xl border px-4 py-3 text-sm shadow-sm ${
                             notice.tone === 'success'
                                 ? 'border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-400/30 dark:bg-emerald-500/15 dark:text-emerald-200'
-                                : 'border-red-200 bg-red-50 text-red-700 dark:border-red-400/30 dark:bg-red-500/15 dark:text-red-200'
+                                : notice.tone === 'info'
+                                    ? 'border-blue-200 bg-blue-50 text-blue-800 dark:border-blue-400/30 dark:bg-blue-500/15 dark:text-blue-200'
+                                    : 'border-red-200 bg-red-50 text-red-700 dark:border-red-400/30 dark:bg-red-500/15 dark:text-red-200'
                         }`}>
                             {notice.text}
                         </div>
@@ -290,9 +299,10 @@ export default function CategoryDashboard({ category, courses, tests, exams, cat
                                             t={t}
                                             onEdit={
                                                 item._type === 'course' ? openEditCourse :
-                                                item._type === 'test'   ? openEditTest   : null
+                                                item._type === 'test'   ? openEditTest   :
+                                                item._type === 'exam'   ? openEditExam   : null
                                             }
-                                            onDelete={item._type !== 'exam' ? setDeleting : null}
+                                            onDelete={setDeleting}
                                         />
                                     ))}
                                 </div>
@@ -378,21 +388,19 @@ export default function CategoryDashboard({ category, courses, tests, exams, cat
                             </div>
                         </button>
 
-                        {/* Exam — coming soon */}
-                        <div className="flex w-full items-center gap-x-4 rounded-xl border-2 border-gray-100 bg-gray-50 p-4 opacity-50 dark:border-gray-700 dark:bg-gray-800">
+                        {/* Exam */}
+                        <button type="button" onClick={openCreateExam}
+                            className="flex w-full items-center gap-x-4 rounded-xl border-2 border-blue-100 bg-blue-50 p-4 text-start transition-all hover:border-blue-300 hover:shadow-md dark:border-blue-900/50 dark:bg-blue-900/20 dark:hover:border-blue-700">
                             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#007BFF] text-white shadow">
                                 <FaClipboardList size={20} />
                             </div>
                             <div>
                                 <p className="font-semibold text-gray-900 dark:text-gray-100">
                                     {t('categoryDashboard.createExam')}
-                                    <span className="ms-2 rounded-full bg-gray-200 px-2 py-0.5 text-[10px] font-medium text-gray-500 dark:bg-gray-700 dark:text-gray-400">
-                                        {t('common.comingSoon')}
-                                    </span>
                                 </p>
                                 <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">{t('categoryDashboard.examDesc')}</p>
                             </div>
-                        </div>
+                        </button>
                     </div>
                 </div>
             </Modal>
@@ -414,6 +422,16 @@ export default function CategoryDashboard({ category, courses, tests, exams, cat
                 categories={categories}
                 questions={questions}
                 onClose={() => { setTestFormOpen(false); setEditingTest(null); }}
+            />
+
+            {/* ── Exam form ──────────────────────────────────────────────── */}
+            <ExamForm
+                show={examFormOpen}
+                exam={editingExam}
+                category={category}
+                categories={categories}
+                questions={questions}
+                onClose={() => { setExamFormOpen(false); setEditingExam(null); }}
             />
 
             {/* ── Delete confirm — same as Questions/Index ───────────────── */}

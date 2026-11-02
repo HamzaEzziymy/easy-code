@@ -15,9 +15,11 @@ return new class extends Migration
             $table->string('title_ar', 200);
             $table->string('title_fr', 200);
             $table->text('description')->nullable();
+            $table->text('description_ar')->nullable();
             $table->unsignedSmallInteger('duration_minutes')->default(30);
             $table->decimal('pass_percentage', 5, 2)->default(70);
             $table->enum('status', ['draft', 'published', 'archived'])->default('draft');
+            $table->string('cover_path')->nullable();
             $table->timestamps();
 
             $table->index(['license_category_id', 'status']);

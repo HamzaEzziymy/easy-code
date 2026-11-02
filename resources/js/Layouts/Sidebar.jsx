@@ -3,7 +3,7 @@ import { Link, usePage } from '@inertiajs/react';
 import ApplicationLogo from '@/Components/ApplicationLogo';
 import {
     FaHome, FaLayerGroup,
-    FaQuestion, FaUser, FaUsers, FaUserGraduate,
+    FaBookOpen, FaUser, FaUsers, FaUserGraduate,
     FaChevronDown, FaChevronUp, FaClipboardList,
 } from 'react-icons/fa';
 import { useTranslation } from 'react-i18next';
@@ -84,8 +84,6 @@ function Sidebar({ sidebarOpen, setSidebarOpen, mobileMenuOpen, setMobileMenuOpe
         href:      route('exams.category', cat.id),
         current:   route().current('exams.category', { category: cat.id }),
     }));
-    console.log(categories)
-
     // True when any category sub-item is the active page
     const examGroupActive = categoryChildren.some(c => c.current);
     const navigation = [
@@ -120,7 +118,7 @@ function Sidebar({ sidebarOpen, setSidebarOpen, mobileMenuOpen, setMobileMenuOpe
         {
             key:     'questions',
             label:   t('nav.questions'),
-            icon:    <FaQuestion size={20} />,
+            icon:    <FaBookOpen size={20} />,
             href:    route('questions.index'),
             current: route().current('questions.*'),
         },

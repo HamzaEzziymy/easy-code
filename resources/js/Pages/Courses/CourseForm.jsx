@@ -48,7 +48,6 @@ export default function CourseForm({ show, course, categories, onClose, category
         form.clearErrors();
         setCoverPreview(null);
     }, [show, course, category]);
-
     const pickCover = (file) => {
         form.setData('cover', file ?? null);
         form.setData('remove_cover', false);
@@ -94,28 +93,21 @@ export default function CourseForm({ show, course, categories, onClose, category
                 </header>
 
                 <div className="flex-1 space-y-5 overflow-y-auto px-6 py-5">
-                    {/* Cover + Category row */}
-                    <div className="flex items-start gap-x-4">
-                        <div className="flex-1">
-                            <InputLabel htmlFor="course-category" value={t('courses.category')} />
-                            <select
-                                id="course-category"
-                                value={form.data.license_category_id}
-                                onChange={(e) => form.setData('license_category_id', e.target.value)}
-                                className={fieldClass}
-                            >
-                                <option value="">{t('courses.selectCategory')}</option>
-                                {categories.map((cat) => (
-                                    <option key={cat.id} value={cat.id}>
-                                        {cat.code} – {rtl ? cat.nameAr || cat.nameFr : cat.nameFr || cat.nameAr}
-                                    </option>
-                                ))}
-                            </select>
-                            <InputError className="mt-2" message={form.errors.license_category_id} />
+                    {/* Category badge (read-only) + Cover row */}
+                    <div className="flex items-center justify-between gap-x-4">
+                        {/* Category — auto-filled, shown as badge */}
+                        <div>
+                            <p className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                                {t('courses.category')}
+                            </p>
+                            <span className="mt-1 inline-flex items-center rounded-lg bg-[#007BFF]/10 px-3 py-1 font-mono text-sm font-bold text-[#007BFF] dark:bg-[#00AEEF]/15 dark:text-[#00AEEF]">
+                                {category?.code ?? '—'}
+                            </span>
+                            <InputError className="mt-1" message={form.errors.license_category_id} />
                         </div>
 
                         {/* Cover image picker */}
-                        <div className="shrink-0 pt-6">
+                        <div className="shrink-0">
                             <div className="relative">
                                 <label title={t('courses.chooseCover')}
                                     className={`flex h-20 w-20 cursor-pointer flex-col items-center justify-center gap-y-1.5 overflow-hidden rounded-xl border text-center transition ${
