@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useLayoutEffect, useCallback } from 'react';
-import { FaTimes, FaExternalLinkAlt, FaFilePdf, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
+import { FaExternalLinkAlt, FaChevronLeft, FaChevronRight, FaFilePdf } from 'react-icons/fa';
 import * as pdfjsLib from 'pdfjs-dist';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
@@ -133,12 +133,15 @@ function PdfCanvas({ pdfDoc, pageNum, width, onVisible }) {
  * Props:
  *   url        — PDF URL
  *   title      — display title
+ *   typePill   — JSX for the type badge shown in the header
+ *   onBack     — back button callback shown in the header
  *   studentId  — for per-student localStorage namespacing
  *   courseId   — for DB persistence
  *   pdfSlot    — 'fr' | 'ar' — for DB persistence
- *   onClose    — close callback
+ *   onClose    — alias for onBack (kept for compat)
  */
-export default function PdfViewer({ url, title, studentId, courseId, pdfSlot, onClose }) {
+export default function PdfViewer({ url, title, typePill, onBack, studentId, courseId, pdfSlot, onClose }) {
+    const handleBack = onBack ?? onClose;
     const [pdfDoc,   setPdfDoc]   = useState(null);
     const [numPages, setNumPages] = useState(0);
     const [curPage,  setCurPage]  = useState(1);
@@ -229,15 +232,27 @@ export default function PdfViewer({ url, title, studentId, courseId, pdfSlot, on
     return (
         <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
 
-            {/* Header */}
+            {/* Header — back button + type pill + title + page controls */}
             <div className="flex h-12 shrink-0 items-center gap-x-2 border-b border-gray-200 bg-white px-3 dark:border-gray-700 dark:bg-gray-800">
-                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-red-100 dark:bg-red-500/20">
-                    <FaFilePdf size={12} className="text-red-500 dark:text-red-400" />
-                </span>
+
+                {/* Back button */}
+                {handleBack && (
+                    <button type="button" onClick={handleBack}
+                        className="flex shrink-0 items-center gap-x-1 rounded-lg border border-gray-200 bg-gray-50 px-2.5 py-1 text-xs font-semibold text-gray-600 transition hover:bg-gray-100 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600">
+                        <FaChevronLeft size={9} />
+                        <span>رجوع</span>
+                    </button>
+                )}
+
+                {/* Type pill */}
+                {typePill && <span className="shrink-0">{typePill}</span>}
+
+                {/* Title */}
                 <span className="min-w-0 flex-1 truncate text-xs font-semibold text-gray-800 dark:text-gray-100">
                     {title}
                 </span>
 
+                {/* Page controls */}
                 {numPages > 0 && (
                     <div className="flex shrink-0 items-center gap-x-1">
                         <button type="button" onClick={() => goTo(curPage - 1)} disabled={curPage <= 1}
@@ -266,10 +281,6 @@ export default function PdfViewer({ url, title, studentId, courseId, pdfSlot, on
                     title="Open in new tab">
                     <FaExternalLinkAlt size={11} />
                 </a>
-                <button type="button" onClick={onClose}
-                    className="rounded p-1.5 text-gray-400 hover:bg-gray-100 hover:text-red-600 dark:hover:bg-gray-700">
-                    <FaTimes size={13} />
-                </button>
             </div>
 
             {/* Progress bar */}

@@ -152,80 +152,74 @@ function DetailView({ item, rtl, t, studentId, examLanguage, onBack }) {
         : null;
     const pdfSlot = pdfUrl ? (pdfUrl === item.pdfArUrl ? 'ar' : 'fr') : null;
 
+    // Type pill passed into the PDF viewer header
+    const typePill = (
+        <span className={`inline-flex items-center gap-x-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ${meta.pill}`}>
+            <Icon size={9} />{t(meta.labelKey)}
+        </span>
+    );
+
     return (
-        <div className="flex h-full flex-col">
-
-            {/* ── Top bar: back button + title ── */}
-            <div className="mb-4 flex shrink-0 items-center gap-x-3">
-                <button
-                    type="button"
-                    onClick={onBack}
-                    className="flex items-center gap-x-1.5 rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-600 shadow-sm transition hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
-                >
-                    <FaChevronLeft size={10} />
-                    {t('students.back')}
-                </button>
-                <span className={`inline-flex items-center gap-x-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${meta.pill}`}>
-                    <Icon size={10} />{t(meta.labelKey)}
-                </span>
-                <h2 dir={rtl ? 'rtl' : 'ltr'}
-                    className="min-w-0 truncate text-sm font-bold text-gray-900 dark:text-gray-100">
-                    {title}
-                </h2>
-            </div>
-
-            {/* ── Content ── */}
+        <div className="h-full">
             {pdfUrl ? (
-                /* Course with PDF — viewer fills remaining height */
-                <div className="min-h-0 flex-1">
-                    <PdfViewer
-                        url={pdfUrl}
-                        title={title}
-                        studentId={studentId}
-                        courseId={item.id}
-                        pdfSlot={pdfSlot}
-                        onClose={onBack}
-                    />
-                </div>
+                <PdfViewer
+                    url={pdfUrl}
+                    title={title}
+                    typePill={typePill}
+                    onBack={onBack}
+                    studentId={studentId}
+                    courseId={item.id}
+                    pdfSlot={pdfSlot}
+                />
             ) : (
-                /* Test / Exam info card */
-                <div className="flex-1 overflow-y-auto">
-                    <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
-                        {/* Cover */}
-                        <div className={`flex h-48 items-center justify-center bg-gradient-to-br ${meta.placeholder}`}>
-                            {item.coverUrl ? (
-                                <img src={item.coverUrl} alt="" className="h-full w-full object-cover" />
-                            ) : (
-                                <Icon size={64} className={`${meta.iconColor} opacity-30`} />
-                            )}
+                /* Test / Exam — no PDF */
+                <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
+                    {/* Header with back + type pill + title */}
+                    <div className="flex h-12 shrink-0 items-center gap-x-2 border-b border-gray-200 px-3 dark:border-gray-700">
+                        <button type="button" onClick={onBack}
+                            className="flex shrink-0 items-center gap-x-1 rounded-lg border border-gray-200 bg-gray-50 px-2.5 py-1 text-xs font-semibold text-gray-600 transition hover:bg-gray-100 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300">
+                            <FaChevronLeft size={9} />
+                            <span>{t('students.back')}</span>
+                        </button>
+                        {typePill}
+                        <span className="min-w-0 flex-1 truncate text-xs font-semibold text-gray-800 dark:text-gray-100">
+                            {title}
+                        </span>
+                    </div>
+
+                    {/* Body */}
+                    <div className="flex-1 overflow-y-auto p-6 space-y-4">
+                        <div className={`flex h-40 items-center justify-center rounded-2xl bg-gradient-to-br ${meta.placeholder}`}>
+                            {item.coverUrl
+                                ? <img src={item.coverUrl} alt="" className="h-full w-full rounded-2xl object-cover" />
+                                : <Icon size={56} className={`${meta.iconColor} opacity-30`} />
+                            }
                         </div>
-                        <div className="p-6 space-y-4">
-                            {desc && (
-                                <p dir={rtl ? 'rtl' : 'ltr'}
-                                    className="text-sm leading-relaxed text-gray-600 dark:text-gray-300">
-                                    {desc}
-                                </p>
+                        {desc && (
+                            <p dir={rtl ? 'rtl' : 'ltr'}
+                                className="text-sm leading-relaxed text-gray-600 dark:text-gray-300">
+                                {desc}
+                            </p>
+                        )}
+                        <div className="flex flex-wrap gap-3">
+                            {item.questionsCount !== undefined && (
+                                <div className="flex items-center gap-x-2 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 dark:border-gray-700 dark:bg-gray-700">
+                                    <FaClipboardCheck size={16} className="text-gray-400" />
+                                    <div>
+                                        <p className="text-xs text-gray-500 dark:text-gray-400">{t('tests.questionsCount')}</p>
+                                        <p className="text-sm font-bold text-gray-900 dark:text-gray-100">{item.questionsCount}</p>
+                                    </div>
+                                </div>
                             )}
-                            <div className="flex flex-wrap gap-3">
-                                {item.questionsCount !== undefined && (
-                                    <div className="flex items-center gap-x-2 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 dark:border-gray-700 dark:bg-gray-700">
-                                        <FaClipboardCheck size={16} className="text-gray-400" />
-                                        <div>
-                                            <p className="text-xs text-gray-500 dark:text-gray-400">{t('tests.questionsCount')}</p>
-                                            <p className="text-sm font-bold text-gray-900 dark:text-gray-100">{item.questionsCount}</p>
-                                        </div>
+                            {item.duration !== undefined && (
+                                <div className="flex items-center gap-x-2 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 dark:border-gray-700 dark:bg-gray-700">
+                                    <FaClock size={16} className="text-gray-400" />
+                                    <div>
+                                        <p className="text-xs text-gray-500 dark:text-gray-400">{t('tests.duration')}</p>
+                                        <p className="text-sm font-bold text-gray-900 dark:text-gray-100">{item.duration} {t('tests.minutes')}</p>
                                     </div>
-                                )}
-                                {item.duration !== undefined && (
-                                    <div className="flex items-center gap-x-2 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 dark:border-gray-700 dark:bg-gray-700">
-                                        <FaClock size={16} className="text-gray-400" />
-                                        <div>
-                                            <p className="text-xs text-gray-500 dark:text-gray-400">{t('tests.duration')}</p>
-                                            <p className="text-sm font-bold text-gray-900 dark:text-gray-100">{item.duration} {t('tests.minutes')}</p>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -267,6 +261,25 @@ export default function Dashboard({ student, courses, tests, exams, pdfProgress 
     const [selectedItem,  setSelectedItem]  = useState(null); // null = cards view
 
     const studentId = student?.studentNumber ?? null;
+
+    // Restore last-viewed item from sessionStorage on mount
+    useEffect(() => {
+        if (!student) return;
+        try {
+            const saved = sessionStorage.getItem(`student_selected_${student.studentNumber}`);
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                // Find the matching item from the current data to get fresh URLs
+                const allCurrent = [
+                    ...courses.map(c  => ({ ...c,  _type: 'course' })),
+                    ...tests.map(tt   => ({ ...tt, _type: 'test'   })),
+                    ...exams.map(e    => ({ ...e,  _type: 'exam'   })),
+                ];
+                const match = allCurrent.find(i => i._type === parsed._type && i.id === parsed.id);
+                if (match) setSelectedItem(match);
+            }
+        } catch { /* silent */ }
+    }, []); // eslint-disable-line
 
     // Seed localStorage from DB on mount
     useEffect(() => {
@@ -311,8 +324,14 @@ export default function Dashboard({ student, courses, tests, exams, pdfProgress 
     const pageItems  = filtered.slice((safePage - 1) * PER_PAGE, safePage * PER_PAGE);
 
     const handleFilter = (v) => { setTypeFilter(v); setPage(1); };
-    const handleSelect = (item) => setSelectedItem(item);
-    const handleBack   = () => setSelectedItem(null);
+    const handleSelect = (item) => {
+        setSelectedItem(item);
+        try { sessionStorage.setItem(`student_selected_${student.studentNumber}`, JSON.stringify({ _type: item._type, id: item.id })); } catch { /* silent */ }
+    };
+    const handleBack = () => {
+        setSelectedItem(null);
+        try { sessionStorage.removeItem(`student_selected_${student.studentNumber}`); } catch { /* silent */ }
+    };
 
     return (
         <StudentLayout student={student}>
