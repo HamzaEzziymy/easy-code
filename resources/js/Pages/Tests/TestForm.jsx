@@ -154,14 +154,7 @@ export default function TestForm({ show, test, categories, questions, onClose, c
                             <InputError message={form.errors.name_ar} />
                         </div>
 
-                        {/* Duration */}
-                        <div className="w-24 shrink-0">
-                            <InputLabel htmlFor="test-duration" value={t('tests.duration')} />
-                            <TextInput id="test-duration" type="number" min={1} max={300} className={fieldClass}
-                                value={form.data.duration_minutes}
-                                onChange={(e) => form.setData('duration_minutes', e.target.value)} />
-                            <InputError message={form.errors.duration_minutes} />
-                        </div>
+
 
                         {/* Status */}
                         <div className="w-32 shrink-0">

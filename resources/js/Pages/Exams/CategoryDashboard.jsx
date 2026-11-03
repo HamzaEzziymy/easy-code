@@ -7,6 +7,7 @@ import Modal from '@/Components/Modal';
 import PrimaryButton from '@/Components/PrimaryButton';
 import SecondaryButton from '@/Components/SecondaryButton';
 import { PdfProgressBar } from '@/Components/PdfViewer';
+import ExamPreview from '@/Components/ExamPreview';
 import * as pdfjsLib from 'pdfjs-dist';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
@@ -124,6 +125,7 @@ export default function CategoryDashboard({ category, courses, tests, exams, cat
     const [examFormOpen,    setExamFormOpen]    = useState(false);
     const [editingExam,     setEditingExam]     = useState(null);
     const [pdfViewer,       setPdfViewer]       = useState(null); // { item, lang }
+    const [examPreview,     setExamPreview]     = useState(null); // { item, lang }
     const [deleting,        setDeleting]        = useState(null);
     const [notice,          setNotice]          = useState(null);
     const [page,            setPage]            = useState(1);
@@ -346,6 +348,9 @@ export default function CategoryDashboard({ category, courses, tests, exams, cat
                                             onView={item._type === 'course' && (item.pdfFrUrl || item.pdfArUrl)
                                                 ? (it) => setPdfViewer({ item: it, lang: it._openLang ?? (it.pdfFrUrl ? 'fr' : 'ar') })
                                                 : null}
+                                            onPreview={(item._type === 'test' || item._type === 'exam') && item.questionsCount > 0
+                                                ? (it, lang) => setExamPreview({ item: it, lang })
+                                                : null}
                                             onEdit={
                                                 item._type === 'course' ? openEditCourse :
                                                 item._type === 'test'   ? openEditTest   :
@@ -520,12 +525,21 @@ export default function CategoryDashboard({ category, courses, tests, exams, cat
                     </div>
                 </div>
             </Modal>
+
+            {/* ── Exam / Test preview ────────────────────────────────────── */}
+            <ExamPreview
+                show={examPreview !== null}
+                item={examPreview?.item}
+                initialLang={examPreview?.lang}
+                questions={questions}
+                onClose={() => setExamPreview(null)}
+            />
         </AuthenticatedLayout>
     );
 }
 
 /* ─── Item Card ────────────────────────────────────────────────────────────── */
-function ItemCard({ item, rtl, t, onView, onEdit, onDelete }) {
+function ItemCard({ item, rtl, t, onView, onPreview, onEdit, onDelete }) {
     const title = inLanguage(rtl, item.nameAr ?? item.titleAr, item.nameFr ?? item.titleFr);
 
     const TYPE_META = {
@@ -568,17 +582,12 @@ function ItemCard({ item, rtl, t, onView, onEdit, onDelete }) {
                 </h4>
 
                 {/* Meta row */}
-                {(item.questionsCount !== undefined || item.duration) && (
+                {item.questionsCount !== undefined && (
                     <div className="flex flex-wrap items-center gap-x-3 text-xs text-gray-500 dark:text-gray-400">
-                        {item.questionsCount !== undefined && (
-                            <span className="inline-flex items-center gap-x-1">
+                        <span className="inline-flex items-center gap-x-1">
                                 <FaClipboardCheck size={10} />
                                 {item.questionsCount} {t('tests.questions')}
                             </span>
-                        )}
-                        {item.duration && (
-                            <span>· {item.duration} {t('tests.minutes')}</span>
-                        )}
                     </div>
                 )}
 
@@ -599,6 +608,23 @@ function ItemCard({ item, rtl, t, onView, onEdit, onDelete }) {
                                 onClick={() => onView && onView({ ...item, _openLang: 'ar' })}
                             />
                         )}
+                    </div>
+                )}
+
+                {/* Preview buttons — tests & exams */}
+                {onPreview && (item._type === 'test' || item._type === 'exam') && (
+                    <div className="flex gap-x-2">
+                        {['fr', 'ar'].map(lang => (
+                            <button
+                                key={lang}
+                                type="button"
+                                onClick={() => onPreview(item, lang)}
+                                className="group flex flex-1 items-center justify-center gap-x-1.5 rounded-lg border border-gray-200 bg-gray-50 py-2 text-xs font-semibold text-gray-600 transition hover:border-[#007BFF]/40 hover:bg-[#007BFF]/5 hover:text-[#007BFF] dark:border-gray-600 dark:bg-gray-700/50 dark:text-gray-300 dark:hover:border-[#00AEEF]/40 dark:hover:text-[#00AEEF]"
+                            >
+                                <FaClipboardCheck size={10} className="shrink-0" />
+                                {lang === 'fr' ? 'FR' : 'AR'}
+                            </button>
+                        ))}
                     </div>
                 )}
 
