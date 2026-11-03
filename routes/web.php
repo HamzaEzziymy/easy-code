@@ -40,9 +40,22 @@ Route::get('/student', StudentDashboard::class)
     ->middleware(['auth', 'role:student'])
     ->name('student.dashboard');
 
+// Student PDF progress — persisted to DB so it survives across devices
+Route::middleware(['auth', 'role:student'])->group(function () {
+    Route::get('/student/pdf-progress', [\App\Http\Controllers\Student\PdfProgressController::class, 'index'])->name('student.pdf-progress.index');
+    Route::post('/student/pdf-progress', [\App\Http\Controllers\Student\PdfProgressController::class, 'save'])->name('student.pdf-progress.save');
+});
+
 Route::get('/students/{student}/photo', [StudentController::class, 'photo'])
     ->middleware('auth')
     ->name('students.photo');
+
+// File serving — accessible to any authenticated user (admins + students)
+Route::middleware('auth')->group(function () {
+    Route::get('/courses/{course}/file/{slot}', [CourseController::class, 'file'])->name('courses.file');
+    Route::get('/tests/{test}/file/{slot}', [TestController::class, 'file'])->name('tests.file');
+    Route::get('/exams/{exam}/file/{slot}', [\App\Http\Controllers\Admin\ExamController::class, 'file'])->name('exams.file');
+});
 
 Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -182,21 +195,18 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::get('/questions/{question}/media/{slot}', [QuestionController::class, 'media'])->name('questions.media');
 
     // Exams
-    Route::get('/exams/{exam}/file/{slot}', [\App\Http\Controllers\Admin\ExamController::class, 'file'])->name('exams.file');
     Route::post('/exams', [\App\Http\Controllers\Admin\ExamController::class, 'store'])->name('exams.store');
     Route::patch('/exams/{exam}', [\App\Http\Controllers\Admin\ExamController::class, 'update'])->name('exams.update');
     Route::delete('/exams/{exam}', [\App\Http\Controllers\Admin\ExamController::class, 'destroy'])->name('exams.destroy');
 
     // Courses
     Route::redirect('/courses', '/dashboard')->name('courses.index');
-    Route::get('/courses/{course}/file/{slot}', [CourseController::class, 'file'])->name('courses.file');
     Route::post('/courses', [CourseController::class, 'store'])->name('courses.store');
     Route::patch('/courses/{course}', [CourseController::class, 'update'])->name('courses.update');
     Route::delete('/courses/{course}', [CourseController::class, 'destroy'])->name('courses.destroy');
 
     // Tests
     Route::redirect('/tests', '/dashboard')->name('tests.index');
-    Route::get('/tests/{test}/file/{slot}', [TestController::class, 'file'])->name('tests.file');
     Route::post('/tests', [TestController::class, 'store'])->name('tests.store');
     Route::patch('/tests/{test}', [TestController::class, 'update'])->name('tests.update');
     Route::delete('/tests/{test}', [TestController::class, 'destroy'])->name('tests.destroy');
