@@ -1,5 +1,5 @@
 import Modal from '@/Components/Modal';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { FaTimes } from 'react-icons/fa';
 import {
     FaCircleCheck,
@@ -35,15 +35,35 @@ const panel = 'rounded-2xl border border-gray-200 bg-white shadow-sm dark:border
    │  Footer result bar (only when answered)                                  │
    └─────────────────────────────────────────────────────────────────────────┘
 ────────────────────────────────────────────────────────────────────────────── */
-export default function ExamPreview({ item, questions, show, onClose, initialLang = 'fr' }) {
+export default function ExamPreview({ item, questions, show = true, onClose, initialLang = 'fr', embedded = false, storageKey = null, savedState = null, onPersist = null }) {
+    // A refresh during a sitting must not wipe the answers or the clock.
+    // Same-tab storage is freshest; the server copy carries the sitting to another device.
+    const [saved] = useState(() => {
+        let local = null;
+        if (storageKey) {
+            try { local = JSON.parse(sessionStorage.getItem(storageKey) || 'null'); } catch { local = null; }
+        }
+        if (local && typeof local === 'object') return local;
+        if (savedState && typeof savedState === 'object' && 'qIndex' in savedState) return savedState;
+        return {};
+    });
+
     const [lang,     setLang]     = useState(initialLang);
-    const [qIndex,   setQIndex]   = useState(0);
-    const [answers,  setAnswers]  = useState({});   // { [qIndex]: number[] }
-    const [done,     setDone]     = useState(false);
-    const [left,     setLeft]     = useState(0);
+    const [qIndex,   setQIndex]   = useState(saved.qIndex ?? 0);
+    const [answers,  setAnswers]  = useState(saved.answers ?? {});   // { [qIndex]: number[] }
+    const [done,     setDone]     = useState(Boolean(saved.done));
+    const [left,     setLeft]     = useState(saved.left ?? 0);
     const [timerRunning, setTimerRunning] = useState(false);
     const timerRef  = useRef(null);
     const audioRef  = useRef(null);
+    const resumeLeft = useRef(saved.left > 0 ? saved.left : null);
+    const persistRef = useRef(null);
+    const syncRef    = useRef({});
+    const pushState  = () => {
+        const s = syncRef.current;
+        if (!s || !Number.isInteger(s.qIndex)) return;
+        persistRef.current?.(s);
+    };
     const [imgRatio, setImgRatio] = useState(null);
 
     /* ── question list ── */
@@ -65,7 +85,7 @@ export default function ExamPreview({ item, questions, show, onClose, initialLan
     const rtl     = lang === 'ar';
 
     const picked     = answers[qIndex] ?? [];
-    const expired    = left <= 0;
+    const expired    = timerRunning && left <= 0;
 
     /* ── sync lang on open ── */
     useEffect(() => { if (show) setLang(initialLang); }, [show, initialLang]);
@@ -79,10 +99,15 @@ export default function ExamPreview({ item, questions, show, onClose, initialLan
         }
     }, [show]);
 
-    /* ── reset timer on question change ── */
+    /* ── reset timer on question change (the first question resumes where the refresh cut in) ── */
     useEffect(() => {
         if (show && !done) {
-            setLeft(timePerQ);
+            if (resumeLeft.current !== null) {
+                setLeft(Math.max(0, resumeLeft.current));
+                resumeLeft.current = null;
+            } else {
+                setLeft(timePerQ);
+            }
             // If no audio for this question, start immediately
             setTimerRunning(!sound);
         }
@@ -101,27 +126,44 @@ export default function ExamPreview({ item, questions, show, onClose, initialLan
         return () => clearInterval(timerRef.current);
     }, [show, qIndex, done, timerRunning]);
 
-    /* ── audio autoplay — start timer when audio ends ── */
-    useEffect(() => {
-        if (!audioRef.current) return;
-        const el = audioRef.current;
+    /* ── audio autoplay — the timer only starts once the clip has been heard ── */
+    const attachAudio = useCallback((el) => {
+        audioRef.current = el;
+        if (!el || !sound) return;
 
-        if (!sound) {
-            // No audio on this question — timer already started above
-            return;
-        }
-
-        // Pause any previous playback, reset, then play
         el.currentTime = 0;
-        el.play()?.catch(() => {
-            // If autoplay is blocked, start timer immediately as fallback
-            setTimerRunning(true);
-        });
+        el.play()?.catch(() => setTimerRunning(true));
+    }, [sound]);
 
-        const handleEnded = () => setTimerRunning(true);
-        el.addEventListener('ended', handleEnded);
-        return () => el.removeEventListener('ended', handleEnded);
-    }, [current?.id, lang, sound]);
+    /* ── keep the sitting in sessionStorage so a refresh resumes it ── */
+    useEffect(() => {
+        if (!storageKey || !show) return;
+        try {
+            sessionStorage.setItem(storageKey, JSON.stringify({ qIndex, answers, done, left }));
+        } catch { /* silent */ }
+    }, [storageKey, show, qIndex, answers, done, left]);
+
+    /* ── a saved position can outlive a reordered question list ── */
+    useEffect(() => {
+        if (total > 0 && qIndex > total - 1) setQIndex(total - 1);
+    }, [total, qIndex]);
+
+    /* ── push answers / question / score to the student's account ── */
+    useEffect(() => {
+        if (!show || !storageKey) return;
+        const id = setTimeout(pushState, 700);
+        return () => clearTimeout(id);
+    }, [show, storageKey, qIndex, answers, done]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    /* ── the clock keeps moving between answers, so save it periodically ── */
+    useEffect(() => {
+        if (!show || !storageKey || done || !timerRunning) return;
+        const id = setInterval(pushState, 5000);
+        return () => clearInterval(id);
+    }, [show, storageKey, done, timerRunning]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    /* ── leaving the item must not drop the last answer ── */
+    useEffect(() => () => pushState(), []); // eslint-disable-line react-hooks/exhaustive-deps
 
     /* ── keyboard ── */
     useEffect(() => {
@@ -159,6 +201,13 @@ export default function ExamPreview({ item, questions, show, onClose, initialLan
         setLeft(questionList[0]?.timeSeconds ?? 30);
     };
 
+    /* ── time up — show the warning, then move on by itself ── */
+    useEffect(() => {
+        if (!show || done || !expired) return;
+        const next = setTimeout(advance, 1200);
+        return () => clearTimeout(next);
+    }, [show, done, expired, qIndex]); // eslint-disable-line react-hooks/exhaustive-deps
+
     /* ── score (based on answers submitted via Valider) ── */
     const score = questionList.reduce((acc, q, idx) => {
         const p  = answers[idx] ?? [];
@@ -167,6 +216,9 @@ export default function ExamPreview({ item, questions, show, onClose, initialLan
     }, 0);
     const scorePct = total > 0 ? Math.round((score / total) * 100) : 0;
     const passed   = scorePct >= (item?.passPercentage ?? 70);
+
+    persistRef.current = onPersist;
+    syncRef.current    = { qIndex, answers, done, left, scorePct };
 
     /* ── answer button colour ── */
     const tone = (index) => {
@@ -178,7 +230,7 @@ export default function ExamPreview({ item, questions, show, onClose, initialLan
     const split = !isImgBased && Boolean(image) && imgRatio !== null && imgRatio < 1;
     const mediaClass = `relative overflow-hidden rounded-t-2xl bg-black ${
         isImgBased
-            ? 'flex-1 rounded-2xl'
+            ? 'min-h-[26vh] flex-1 rounded-2xl lg:min-h-0'
             : `min-h-[26vh] flex-1 lg:min-h-0 ${split ? 'lg:w-[52%] lg:flex-none lg:rounded-bl-2xl lg:rounded-tr-none' : ''}`
     }`;
     const sheetClass = `shrink-0 rounded-b-2xl border-t border-gray-200 p-4 sm:p-5 dark:border-gray-700 ${
@@ -190,44 +242,57 @@ export default function ExamPreview({ item, questions, show, onClose, initialLan
     const urgent = bar <= 25;
     const title  = rtl ? (item?.nameAr || item?.nameFr) : (item?.nameFr || item?.nameAr);
 
-    return (
-        <Modal show={show} fullHeight onClose={onClose}>
+    const content = (
+        <>
 
             {/* ── Header ──────────────────────────────────────────────────── */}
             <header className="flex shrink-0 flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-gray-200 px-4 py-3 sm:px-5 dark:border-gray-700">
-                <div className="min-w-0">
-                    <h3 className="truncate text-base font-semibold text-gray-900 dark:text-gray-100">
-                        {title}
-                    </h3>
-                    {!done && (
-                        <p className="text-xs text-gray-500 dark:text-gray-400">
-                            {rtl ? `السؤال ${qIndex + 1} من ${total}` : `Question ${qIndex + 1} / ${total}`}
-                        </p>
+                <div className="flex min-w-0 flex-1 items-center gap-x-2.5">
+                    {embedded && (
+                        <button type="button" onClick={onClose}
+                            className="flex shrink-0 items-center gap-x-1 rounded-lg border border-gray-200 bg-gray-50 px-2.5 py-1 text-xs font-semibold text-gray-600 transition hover:bg-gray-100 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300">
+                            <FaChevronLeft size={9} />
+                            <span>{rtl ? 'رجوع' : 'Retour'}</span>
+                        </button>
                     )}
+                    <div className="min-w-0">
+                        <h3 className="truncate text-base font-semibold text-gray-900 dark:text-gray-100">
+                            {title}
+                        </h3>
+                        {!done && (
+                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                                {rtl ? `السؤال ${qIndex + 1} من ${total}` : `Question ${qIndex + 1} / ${total}`}
+                            </p>
+                        )}
+                    </div>
                 </div>
 
                 <div className="flex items-center gap-x-2">
-                    {/* FR / AR */}
-                    <div className="inline-flex rounded-xl border border-gray-300 bg-white p-0.5 dark:border-gray-600 dark:bg-gray-700">
-                        {['fr', 'ar'].map(l => (
-                            <button key={l} type="button" onClick={() => { setLang(l); reset(); }}
-                                className={`rounded-[10px] px-3 py-1 text-xs font-semibold uppercase tracking-wide transition-colors ${
-                                    lang === l ? 'bg-[#007BFF] text-white' : 'text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-100'
-                                }`}>
-                                {l === 'fr' ? 'FR' : 'AR'}
-                            </button>
-                        ))}
-                    </div>
+                    {/* FR / AR — preview only; a trainee sits the exam in their own language */}
+                    {!embedded && (
+                        <div className="inline-flex rounded-xl border border-gray-300 bg-white p-0.5 dark:border-gray-600 dark:bg-gray-700">
+                            {['fr', 'ar'].map(l => (
+                                <button key={l} type="button" onClick={() => { setLang(l); reset(); }}
+                                    className={`rounded-[10px] px-3 py-1 text-xs font-semibold uppercase tracking-wide transition-colors ${
+                                        lang === l ? 'bg-[#007BFF] text-white' : 'text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-100'
+                                    }`}>
+                                    {l === 'fr' ? 'FR' : 'AR'}
+                                </button>
+                            ))}
+                        </div>
+                    )}
                     {/* Restart */}
-                    <button type="button" onClick={reset}
+                    <button type="button" onClick={reset} title={rtl ? 'إعادة' : 'Recommencer'}
                         className="rounded-lg p-2 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700">
                         <FaRotateLeft size={13} />
                     </button>
-                    {/* Close */}
-                    <button type="button" onClick={onClose}
-                        className="rounded-lg p-2 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700">
-                        <FaTimes size={14} />
-                    </button>
+                    {/* Close — embedded screens go back instead */}
+                    {!embedded && (
+                        <button type="button" onClick={onClose}
+                            className="rounded-lg p-2 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700">
+                            <FaTimes size={14} />
+                        </button>
+                    )}
                 </div>
             </header>
 
@@ -280,10 +345,10 @@ export default function ExamPreview({ item, questions, show, onClose, initialLan
 
                 ) : (
                     /* ── Question view ── */
-                    <div dir="ltr" className="flex h-full min-h-0 flex-col gap-4 lg:flex-row">
+                    <div dir="ltr" className="flex flex-col gap-4 lg:h-full lg:min-h-0 lg:flex-row">
 
                         {/* LEFT — image + question text (identical to QuestionPreview) */}
-                        <div className={`${panel} flex min-h-0 flex-1 flex-col ${split ? 'lg:flex-row' : ''}`}>
+                        <div className={`${panel} flex flex-col lg:min-h-0 lg:flex-1 ${split ? 'lg:flex-row' : ''}`}>
                             <div className={mediaClass}>
                                 {image ? (
                                     <img key={image} src={image} alt=""
@@ -297,7 +362,8 @@ export default function ExamPreview({ item, questions, show, onClose, initialLan
                                 )}
                                 {sound && (
                                     <>
-                                        <audio ref={audioRef} src={sound} preload="auto" />
+                                        <audio ref={attachAudio} src={sound} preload="auto"
+                                            onEnded={() => setTimerRunning(true)} />
                                         <button type="button" onClick={() => audioRef.current?.play()}
                                             className="absolute bottom-3 start-3 inline-flex items-center gap-x-2 rounded-full border border-white/25 bg-black/55 px-3 py-1.5 text-xs font-medium text-white backdrop-blur transition-colors hover:bg-black/70">
                                             <FaVolumeHigh size={12} /> Play
@@ -361,14 +427,14 @@ export default function ExamPreview({ item, questions, show, onClose, initialLan
                                 </div>
                             </div>
 
-                            {/* Answer buttons 1–4 */}
-                            <div className="grid grid-cols-1 gap-3">
+                            {/* Answer buttons 1–4 — one row on small screens, column on desktop */}
+                            <div className="grid grid-cols-4 gap-2 lg:grid-cols-1 lg:gap-3">
                                 {[0, 1, 2, 3].map(index => (
                                     <button key={index} type="button"
                                         onClick={() => pick(index)}
                                         disabled={expired}
                                         aria-pressed={picked.includes(index)}
-                                        className={`flex w-full items-center justify-center rounded-full border-2 py-3 text-lg font-semibold tabular-nums transition-colors disabled:opacity-50 ${tone(index)}`}>
+                                        className={`flex h-11 w-full items-center justify-center rounded-full border-2 text-base font-semibold tabular-nums transition-colors disabled:opacity-50 lg:h-auto lg:py-3 lg:text-lg ${tone(index)}`}>
                                         {index + 1}
                                     </button>
                                 ))}
@@ -418,17 +484,29 @@ export default function ExamPreview({ item, questions, show, onClose, initialLan
 
             {/* ── Footer result bar — only on time expiry ───────────────── */}
             {!done && expired && (
-                <footer className="flex shrink-0 flex-wrap items-center gap-x-2 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800 sm:px-5 dark:bg-amber-500/15 dark:text-amber-200">
+                <footer className="flex shrink-0 items-center gap-x-2 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800 sm:px-5 dark:bg-amber-500/15 dark:text-amber-200">
                     <FaHourglassEnd size={15} />
-                    <span>{rtl ? 'انتهى الوقت!' : 'Temps écoulé!'}</span>
-                    {qIndex < total - 1 && (
-                        <button type="button" onClick={advance}
-                            className="ms-auto flex items-center gap-x-1 rounded-lg bg-amber-100 px-3 py-1 text-xs transition hover:bg-amber-200 dark:bg-amber-500/20 dark:hover:bg-amber-500/30">
-                            {rtl ? 'التالي' : 'Suivant'} <FaChevronRight size={10} />
-                        </button>
-                    )}
+                    <span>
+                        {qIndex < total - 1
+                            ? (rtl ? 'انتهى الوقت — السؤال التالي...' : 'Temps écoulé — question suivante...')
+                            : (rtl ? 'انتهى الوقت — انتهى الاختبار' : 'Temps écoulé — fin du test')}
+                    </span>
                 </footer>
             )}
+        </>
+    );
+
+    if (embedded) {
+        return (
+            <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
+                {content}
+            </div>
+        );
+    }
+
+    return (
+        <Modal show={show} fullHeight onClose={onClose}>
+            {content}
         </Modal>
     );
 }

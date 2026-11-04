@@ -1,5 +1,6 @@
 import StudentLayout from '@/Layouts/StudentLayout';
 import PdfViewer, { PdfProgressBar, seedProgressFromServer } from '@/Components/PdfViewer';
+import ExamPreview from '@/Components/ExamPreview';
 import { Head } from '@inertiajs/react';
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -7,6 +8,8 @@ import {
     FaBook,
     FaChevronLeft,
     FaChevronRight,
+    FaCircleCheck,
+    FaCirclePlay,
     FaClipboardCheck,
     FaClipboardList,
     FaInbox,
@@ -48,6 +51,37 @@ const TYPE_META = {
 
 const PER_PAGE = 12;
 
+/* ─── Progress sync — the sitting follows the student account ──────────────── */
+function saveQuizProgress(item, state) {
+    if (!item || !state) return;
+    const body = JSON.stringify({
+        item_type: item._type,
+        item_id:   item.id,
+        qIndex:    state.qIndex,
+        answers:   state.answers,
+        left:      state.left,
+        done:      state.done,
+        scorePct:  state.scorePct,
+        _token:    document.querySelector('meta[name="csrf-token"]')?.content ?? '',
+    });
+
+    if (navigator.sendBeacon) {
+        navigator.sendBeacon('/student/progress', new Blob([body], { type: 'application/json' }));
+        return;
+    }
+
+    fetch('/student/progress', {
+        method:  'POST',
+        headers: {
+            'Content-Type':     'application/json',
+            'X-CSRF-TOKEN':     document.querySelector('meta[name="csrf-token"]')?.content ?? '',
+            'X-Requested-With': 'XMLHttpRequest',
+        },
+        body,
+        keepalive: true,
+    }).catch(() => {});
+}
+
 /* ─── Filter pill ──────────────────────────────────────────────────────────── */
 function FilterTab({ value, active, label, icon: Icon, meta, count, onChange }) {
     const base     = 'flex items-center gap-x-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all';
@@ -71,7 +105,7 @@ function FilterTab({ value, active, label, icon: Icon, meta, count, onChange }) 
 }
 
 /* ─── Card (cards view) ────────────────────────────────────────────────────── */
-function ItemCard({ item, rtl, t, examLanguage, studentId, onSelect }) {
+function ItemCard({ item, rtl, t, examLanguage, studentId, pdfProgress, progress, onSelect }) {
     const meta    = TYPE_META[item._type] ?? TYPE_META.exam;
     const { Icon } = meta;
     const title   = inLang(rtl, item.nameAr, item.nameFr);
@@ -82,12 +116,17 @@ function ItemCard({ item, rtl, t, examLanguage, studentId, onSelect }) {
         : null;
     const pdfSlot  = pdfUrl ? (pdfUrl === item.pdfArUrl ? 'ar' : 'fr') : null;
     const pdfLabel = pdfSlot === 'ar' ? 'AR' : 'FR';
+    const pdfPct   = pdfSlot ? (pdfProgress?.[`${item.id}:${pdfSlot}`]?.scrollPct ?? null) : null;
+    const answered = progress ? Math.min(progress.qIndex + 1, item.questionsCount || progress.qIndex + 1) : null;
 
+    // The PDF progress bar is itself a button, so the card cannot be one.
     return (
-        <button
-            type="button"
+        <div
+            role="button"
+            tabIndex={0}
             onClick={() => onSelect(item)}
-            className="group flex flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white text-start shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md dark:border-gray-700 dark:bg-gray-800"
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect(item); } }}
+            className="group flex cursor-pointer flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white text-start shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-[#007BFF] dark:border-gray-700 dark:bg-gray-800"
         >
             {/* Cover */}
             <div className="relative h-36 w-full overflow-hidden">
@@ -115,7 +154,7 @@ function ItemCard({ item, rtl, t, examLanguage, studentId, onSelect }) {
                         {desc}
                     </p>
                 )}
-                {(item.questionsCount !== undefined || item.duration !== undefined) && (
+                {(item.questionsCount !== undefined || item.duration !== undefined || progress) && (
                     <div className="mt-2 flex flex-wrap gap-1.5">
                         {item.questionsCount !== undefined && (
                             <span className="inline-flex items-center gap-x-1 rounded-md bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium text-gray-600 dark:bg-gray-700 dark:text-gray-300">
@@ -127,21 +166,35 @@ function ItemCard({ item, rtl, t, examLanguage, studentId, onSelect }) {
                                 <FaClock size={8} />{item.duration} {t('tests.minutes')}
                             </span>
                         )}
+                        {progress && (
+                            <span className={`inline-flex items-center gap-x-1 rounded-md px-1.5 py-0.5 text-[10px] font-semibold ${
+                                progress.done
+                                    ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300'
+                                    : 'bg-[#007BFF]/10 text-[#007BFF] dark:bg-[#007BFF]/20 dark:text-[#00AEEF]'
+                            }`}>
+                                {progress.done
+                                    ? <FaCircleCheck size={8} />
+                                    : <FaCirclePlay size={8} />}
+                                {progress.done
+                                    ? `${progress.scorePct ?? 0}%`
+                                    : `${answered}/${item.questionsCount ?? '?'}`}
+                            </span>
+                        )}
                     </div>
                 )}
                 {pdfUrl && (
                     <div className="mt-2">
-                        <PdfProgressBar url={pdfUrl} label={pdfLabel} studentId={studentId}
+                        <PdfProgressBar url={pdfUrl} label={pdfLabel} studentId={studentId} initialPct={pdfPct}
                             onClick={(e) => { e.stopPropagation(); onSelect(item); }} />
                     </div>
                 )}
             </div>
-        </button>
+        </div>
     );
 }
 
 /* ─── Detail view (replaces cards when item selected) ──────────────────────── */
-function DetailView({ item, rtl, t, studentId, examLanguage, onBack }) {
+function DetailView({ item, rtl, t, studentId, examLanguage, pdfProgress, onBack }) {
     const meta    = TYPE_META[item._type] ?? TYPE_META.exam;
     const { Icon } = meta;
     const title   = inLang(rtl, item.nameAr, item.nameFr);
@@ -151,6 +204,7 @@ function DetailView({ item, rtl, t, studentId, examLanguage, onBack }) {
         ? (examLanguage === 'ar' ? (item.pdfArUrl || item.pdfFrUrl) : (item.pdfFrUrl || item.pdfArUrl))
         : null;
     const pdfSlot = pdfUrl ? (pdfUrl === item.pdfArUrl ? 'ar' : 'fr') : null;
+    const pdfPage = pdfSlot ? (pdfProgress?.[`${item.id}:${pdfSlot}`]?.page ?? null) : null;
 
     // Type pill passed into the PDF viewer header
     const typePill = (
@@ -170,6 +224,7 @@ function DetailView({ item, rtl, t, studentId, examLanguage, onBack }) {
                     studentId={studentId}
                     courseId={item.id}
                     pdfSlot={pdfSlot}
+                    initialPage={pdfPage}
                 />
             ) : (
                 /* Test / Exam — no PDF */
@@ -252,7 +307,7 @@ function Pagination({ page, totalPages, onChange }) {
 }
 
 /* ─── Dashboard ────────────────────────────────────────────────────────────── */
-export default function Dashboard({ student, courses, tests, exams, pdfProgress = {} }) {
+export default function Dashboard({ student, courses, tests, exams, questions = [], pdfProgress = {}, quizProgress = {} }) {
     const { t, i18n } = useTranslation();
     const rtl = i18n.language?.startsWith('ar');
 
@@ -276,6 +331,7 @@ export default function Dashboard({ student, courses, tests, exams, pdfProgress 
                     ...exams.map(e    => ({ ...e,  _type: 'exam'   })),
                 ];
                 const match = allCurrent.find(i => i._type === parsed._type && i.id === parsed.id);
+                // A refresh must not throw the trainee back to the card list.
                 if (match) setSelectedItem(match);
             }
         } catch { /* silent */ }
@@ -338,16 +394,30 @@ export default function Dashboard({ student, courses, tests, exams, pdfProgress 
             <Head title={t('student.title')} />
 
             {selectedItem ? (
-                /* ══ DETAIL VIEW — fills the content area ══════════════════ */
-                <div className="h-[calc(100vh-5rem)]">
-                    <DetailView
-                        item={selectedItem}
-                        rtl={rtl}
-                        t={t}
-                        studentId={studentId}
-                        examLanguage={examLanguage}
-                        onBack={handleBack}
-                    />
+                /* ══ CONTENT VIEW — fills the right pane next to the sidebar ══ */
+                <div className="flex h-[calc(100dvh-6.5rem)] min-h-0 flex-col sm:h-[calc(100dvh-4rem)] lg:h-[calc(100dvh-5rem)]">
+                    {selectedItem._type === 'course' || !(selectedItem.questionIds?.length > 0) ? (
+                        <DetailView
+                            item={selectedItem}
+                            rtl={rtl}
+                            t={t}
+                            studentId={studentId}
+                            examLanguage={examLanguage}
+                            pdfProgress={pdfProgress}
+                            onBack={handleBack}
+                        />
+                    ) : (
+                        <ExamPreview
+                            embedded
+                            item={selectedItem}
+                            questions={questions}
+                            initialLang={examLanguage}
+                            storageKey={`student_quiz_${studentId}_${selectedItem._type}_${selectedItem.id}`}
+                            savedState={quizProgress[`${selectedItem._type}:${selectedItem.id}`] ?? null}
+                            onPersist={(state) => saveQuizProgress(selectedItem, state)}
+                            onClose={handleBack}
+                        />
+                    )}
                 </div>
 
             ) : (
@@ -378,6 +448,8 @@ export default function Dashboard({ student, courses, tests, exams, pdfProgress 
                                     t={t}
                                     examLanguage={examLanguage}
                                     studentId={studentId}
+                                    pdfProgress={pdfProgress}
+                                    progress={quizProgress[`${item._type}:${item.id}`]}
                                     onSelect={handleSelect}
                                 />
                             ))}

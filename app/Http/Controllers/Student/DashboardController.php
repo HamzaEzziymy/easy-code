@@ -6,7 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Models\Course;
 use App\Models\Exam;
 use App\Models\StudentPdfProgress;
+use App\Models\StudentQuizProgress;
 use App\Models\Test;
+use App\Support\QuestionBank;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -23,7 +25,9 @@ class DashboardController extends Controller
                 'courses'      => [],
                 'tests'        => [],
                 'exams'        => [],
+                'questions'    => [],
                 'pdfProgress'  => [],
+                'quizProgress' => [],
             ]);
         }
 
@@ -62,6 +66,7 @@ class DashboardController extends Controller
                 'duration'       => $t->duration_minutes,
                 'passPercentage' => $t->pass_percentage,
                 'questionsCount' => $t->testQuestions()->count(),
+                'questionIds'    => $t->testQuestions()->orderBy('question_order')->pluck('question_id')->values()->all(),
                 'coverUrl'       => $t->cover_path ? route('tests.file', [$t, 'cover']).'?v='.$t->updated_at->timestamp : null,
             ])
             ->values();
@@ -81,6 +86,7 @@ class DashboardController extends Controller
                 'duration'       => $e->duration_minutes,
                 'passPercentage' => $e->pass_percentage,
                 'questionsCount' => $e->examQuestions()->count(),
+                'questionIds'    => $e->examQuestions()->orderBy('question_order')->pluck('question_id')->values()->all(),
                 'coverUrl'       => $e->cover_path ? route('exams.file', [$e, 'cover']).'?v='.$e->updated_at->timestamp : null,
             ])
             ->values();
@@ -96,9 +102,25 @@ class DashboardController extends Controller
             ];
         }
 
+        // Test / exam sitting — keyed as "type:id" so any device resumes where the trainee stopped
+        $quizRows     = StudentQuizProgress::where('student_id', $student->id)->get();
+        $quizProgress = [];
+        foreach ($quizRows as $row) {
+            $quizProgress["{$row->item_type}:{$row->item_id}"] = [
+                'qIndex'   => $row->question_index,
+                'answers'  => $row->answers ?? [],
+                'done'     => $row->done,
+                'left'     => $row->remaining_seconds,
+                'scorePct' => $row->score_pct,
+            ];
+        }
+
         return Inertia::render('Student/Dashboard', [
             'student' => [
                 'studentNumber'  => $student->student_number,
+                'photoUrl'       => $student->photo_path
+                    ? route('students.photo', $student).'?v='.optional($student->updated_at)->timestamp
+                    : null,
                 'firstName'      => $student->first_name,
                 'lastName'       => $student->last_name,
                 'firstNameAr'    => $student->first_name_ar,
@@ -123,7 +145,9 @@ class DashboardController extends Controller
             'courses'     => $courses,
             'tests'       => $tests,
             'exams'       => $exams,
+            'questions'   => QuestionBank::forCategory($catId),
             'pdfProgress' => $pdfProgress,
+            'quizProgress' => $quizProgress,
         ]);
     }
 }

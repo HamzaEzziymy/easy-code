@@ -12,6 +12,7 @@ use App\Models\LicenseCategory;
 use App\Models\Question;
 use App\Models\Student;
 use App\Models\User;
+use App\Support\QuestionBank;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -44,6 +45,9 @@ Route::get('/student', StudentDashboard::class)
 Route::middleware(['auth', 'role:student'])->group(function () {
     Route::get('/student/pdf-progress', [\App\Http\Controllers\Student\PdfProgressController::class, 'index'])->name('student.pdf-progress.index');
     Route::post('/student/pdf-progress', [\App\Http\Controllers\Student\PdfProgressController::class, 'save'])->name('student.pdf-progress.save');
+
+    // Test / exam sitting — same account-level storage, so it resumes on any device
+    Route::post('/student/progress', [\App\Http\Controllers\Student\QuizProgressController::class, 'save'])->name('student.progress.save');
 });
 
 Route::get('/students/{student}/photo', [StudentController::class, 'photo'])
@@ -55,6 +59,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/courses/{course}/file/{slot}', [CourseController::class, 'file'])->name('courses.file');
     Route::get('/tests/{test}/file/{slot}', [TestController::class, 'file'])->name('tests.file');
     Route::get('/exams/{exam}/file/{slot}', [\App\Http\Controllers\Admin\ExamController::class, 'file'])->name('exams.file');
+    // Trainees sit the questions, so question media cannot stay behind the admin-only group.
+    Route::get('/questions/{question}/media/{slot}', [QuestionController::class, 'media'])->name('questions.media');
 });
 
 Route::middleware(['auth', 'role:admin'])->group(function () {
@@ -110,7 +116,7 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
             'duration'       => $t->duration_minutes,
             'passPercentage' => $t->pass_percentage,
             'questionsCount' => $t->testQuestions()->count(),
-            'questionIds'    => $t->testQuestions()->pluck('question_id')->values()->all(),
+            'questionIds'    => $t->testQuestions()->orderBy('question_order')->pluck('question_id')->values()->all(),
             'coverUrl'       => $t->cover_path ? route('tests.file', [$t, 'cover']).'?v='.$t->updated_at->timestamp : null,
         ];
 
@@ -122,6 +128,7 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
             'descriptionAr'  => $e->description_ar,
             'status'         => $e->status,
             'duration'       => $e->duration_minutes,
+            'passPercentage' => $e->pass_percentage,
             'questionsCount' => $e->examQuestions()->count(),
             'questionIds'    => $e->examQuestions()->orderBy('question_order')->pluck('question_id')->values()->all(),
             'coverUrl'       => $e->cover_path ? route('exams.file', [$e, 'cover']).'?v='.$e->updated_at->timestamp : null,
@@ -148,38 +155,7 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
                     'nameAr' => $c->name_ar,
                     'nameFr' => $c->name_fr,
                 ]),
-            'questions' => \App\Models\Question::where('is_active', true)
-                ->where(fn ($q) => $q
-                    ->where('license_category_id', $category->id)
-                    ->orWhereNull('license_category_id')
-                )
-                ->with(['translations', 'options.translations', 'licenseCategory'])
-                ->get()
-                ->map(fn ($q) => [
-                    'id'           => $q->id,
-                    'format'       => $q->question_format ?? 'text_based',
-                    'textFr'       => $q->textFor('fr'),
-                    'textAr'       => $q->textFor('ar'),
-                    'categoryId'   => $q->license_category_id,
-                    'categoryCode' => $q->licenseCategory?->code,
-                    'timeSeconds'  => $q->time_limit_seconds,
-                    'multiple'     => $q->question_type === 'multiple_choice',
-                    'choices'      => $q->options->sortBy('sort_order')->map(fn ($o) => [
-                        'key'      => $o->option_key,
-                        'fr'       => $o->textFor('fr'),
-                        'ar'       => $o->textFor('ar'),
-                        'prefixFr' => $o->prefixFor('fr'),
-                        'prefixAr' => $o->prefixFor('ar'),
-                        'correct'  => $o->is_correct,
-                    ])->values()->all(),
-                    'media'        => [
-                        'imageAr'  => $q->image_ar ? route('questions.media', [$q, 'image_ar']).'?v='.$q->updated_at->timestamp : null,
-                        'imageFr'  => $q->image_fr ? route('questions.media', [$q, 'image_fr']).'?v='.$q->updated_at->timestamp : null,
-                        'audioAr'  => $q->audio_ar ? route('questions.media', [$q, 'audio_ar']).'?v='.$q->updated_at->timestamp : null,
-                        'audioFr'  => $q->audio_fr ? route('questions.media', [$q, 'audio_fr']).'?v='.$q->updated_at->timestamp : null,
-                    ],
-                ])
-                ->all(),
+            'questions' => QuestionBank::forCategory($category->id),
         ]);
     })->name('exams.category');
 
@@ -192,7 +168,6 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::patch('/questions/{question}', [QuestionController::class, 'update'])->name('questions.update');
     Route::patch('/questions/{question}/active', [QuestionController::class, 'toggleActive'])->name('questions.toggleActive');
     Route::delete('/questions/{question}', [QuestionController::class, 'destroy'])->name('questions.destroy');
-    Route::get('/questions/{question}/media/{slot}', [QuestionController::class, 'media'])->name('questions.media');
 
     // Exams
     Route::post('/exams', [\App\Http\Controllers\Admin\ExamController::class, 'store'])->name('exams.store');

@@ -138,9 +138,10 @@ function PdfCanvas({ pdfDoc, pageNum, width, onVisible }) {
  *   studentId  — for per-student localStorage namespacing
  *   courseId   — for DB persistence
  *   pdfSlot    — 'fr' | 'ar' — for DB persistence
+ *   initialPage — server-side page, used when this device has no local progress yet
  *   onClose    — alias for onBack (kept for compat)
  */
-export default function PdfViewer({ url, title, typePill, onBack, studentId, courseId, pdfSlot, onClose }) {
+export default function PdfViewer({ url, title, typePill, onBack, studentId, courseId, pdfSlot, initialPage = null, onClose }) {
     const handleBack = onBack ?? onClose;
     const [pdfDoc,   setPdfDoc]   = useState(null);
     const [numPages, setNumPages] = useState(0);
@@ -175,7 +176,7 @@ export default function PdfViewer({ url, title, typePill, onBack, studentId, cou
         pdfjsLib.getDocument({ url, withCredentials: true }).promise
             .then(doc => {
                 if (cancelled) return;
-                const pg = Math.min(Math.max(1, savedPageLocal(studentId, url)), doc.numPages);
+                const pg = Math.min(Math.max(1, savedPageLocal(studentId, url), initialPage ?? 1), doc.numPages);
                 setPdfDoc(doc);
                 setNumPages(doc.numPages);
                 setCurPage(pg);
@@ -325,15 +326,17 @@ export default function PdfViewer({ url, title, typePill, onBack, studentId, cou
 }
 
 /* ── PdfProgressBar ───────────────────────────────────────────────────────── */
-export function PdfProgressBar({ url, label, studentId, onClick }) {
+export function PdfProgressBar({ url, label, studentId, initialPct = null, onClick }) {
     const readPct = () => {
         try {
             const e = readAll(studentId)[url];
-            if (!e) return null;
-            if (e.scrollPct !== undefined) return e.scrollPct;
-            if (e.page && e.total > 0) return Math.round((e.page / e.total) * 100);
+            if (e) {
+                if (e.scrollPct !== undefined) return e.scrollPct;
+                if (e.page && e.total > 0) return Math.round((e.page / e.total) * 100);
+            }
         } catch { }
-        return null;
+        // Server value — the bar shows the account's progress on a fresh device
+        return typeof initialPct === 'number' ? initialPct : null;
     };
 
     const [pct, setPct] = useState(readPct);

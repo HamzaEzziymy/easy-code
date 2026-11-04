@@ -58,10 +58,26 @@ i18n.use(initReactI18next).init({
     interpolation: { escapeValue: false },
 });
 
+let persistSuspended = false;
+
 i18n.on('languageChanged', (code) => {
-    persistLocale(code);
+    if (!persistSuspended) {
+        persistLocale(code);
+    }
     applyLocale(code);
 });
+
+/**
+ * Switches the language without touching the saved preference — the trainee space
+ * follows the exam language, while the rest of the app keeps its own choice.
+ */
+export function setLocaleSilently(code) {
+    persistSuspended = true;
+
+    return i18n.changeLanguage(code).finally(() => {
+        persistSuspended = false;
+    });
+}
 
 applyLocale(i18n.language);
 

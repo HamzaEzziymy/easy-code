@@ -1,17 +1,19 @@
 import ApplicationLogo from '@/Components/ApplicationLogo';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { router, usePage } from '@inertiajs/react';
 import { useTranslation } from 'react-i18next';
-import { applyLocale } from '@/i18n';
+import { setLocaleSilently, dirOf } from '@/i18n';
 import {
     FaBars,
     FaCarSide,
     FaCircleNotch,
     FaGlobe,
     FaIdBadge,
+    FaMoon,
     FaPhone,
     FaRegCalendarCheck,
     FaSignOutAlt,
+    FaSun,
 } from 'react-icons/fa';
 
 const statusStyles = {
@@ -39,16 +41,65 @@ function Detail({ icon, label, value }) {
     );
 }
 
+function Avatar({ photoUrl, name }) {
+    const [failed, setFailed] = useState(false);
+
+    useEffect(() => setFailed(false), [photoUrl]);
+
+    return (
+        <span className="relative mx-auto flex h-[72px] w-[72px] items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-[#007BFF] to-[#00AEEF] text-2xl font-bold text-white shadow-lg shadow-blue-500/25 ring-2 ring-white dark:ring-gray-800">
+            {photoUrl && !failed ? (
+                <img
+                    src={photoUrl}
+                    alt={name}
+                    className="h-full w-full object-cover"
+                    onError={() => setFailed(true)}
+                />
+            ) : (
+                (name || '?').charAt(0).toUpperCase()
+            )}
+        </span>
+    );
+}
+
 export default function StudentLayout({ student, children }) {
     const { t, i18n } = useTranslation();
     const user = usePage().props.auth.user;
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [leaving, setLeaving] = useState(false);
+    const [dark, setDark] = useState(() => document.documentElement.classList.contains('dark'));
 
-    useEffect(() => {
-        document.documentElement.dir = 'ltr';
-        return () => applyLocale(i18n.language);
+    // The trainee area speaks the exam language (ar | fr), not the admin's UI preference.
+    const studentLang = student?.examLanguage === 'ar' ? 'ar' : student?.examLanguage === 'fr' ? 'fr' : null;
+    const i18nRef       = useRef(i18n);
+    const enteredLang   = useRef(i18n.language);
+
+    useLayoutEffect(() => {
+        if (!studentLang || i18nRef.current.language === studentLang) return;
+        enteredLang.current = i18nRef.current.language;
+        setLocaleSilently(studentLang);
+        // Leaving the student space restores whatever language the previous area used.
+        return () => {
+            setLocaleSilently(enteredLang.current).finally(() => {
+                document.documentElement.dir = dirOf(enteredLang.current);
+            });
+        };
+    }, [studentLang]);
+
+    // The trainee space is laid out left-to-right even when it speaks Arabic.
+    useLayoutEffect(() => {
+        const forceLtr = () => { document.documentElement.dir = 'ltr'; };
+        forceLtr();
+        i18nRef.current.on('languageChanged', forceLtr);
+        return () => i18nRef.current.off('languageChanged', forceLtr);
     }, []);
+
+    const toggleTheme = () => {
+        const next = !dark;
+        setDark(next);
+        document.documentElement.classList.toggle('dark', next);
+        try { localStorage.setItem('theme', next ? 'dark' : 'light'); } catch { /* silent */ }
+    };
 
     const handleLogout = () => {
         if (leaving) return;
@@ -58,6 +109,13 @@ export default function StudentLayout({ student, children }) {
 
     const language   = i18n.resolvedLanguage || i18n.language || 'en';
     const rtl        = language.startsWith('ar');
+    // Name follows the exam language: Arabic fields for ar, Latin fields for fr.
+    const displayName = student
+        ? ([
+              rtl ? student.firstNameAr || student.firstName : student.firstName || student.firstNameAr,
+              rtl ? student.lastNameAr || student.lastName : student.lastName || student.lastNameAr,
+          ].filter(Boolean).join(' ') || user.name)
+        : user.name;
     const category   = student?.category
         ? `${(rtl ? student.category.nameAr : student.category.nameFr) ?? ''} (${student.category.code})`.trim()
         : null;
@@ -82,11 +140,9 @@ export default function StudentLayout({ student, children }) {
 
             {/* Avatar + name + status */}
             <div className="relative px-5 pb-6 pt-4 text-center">
-                <span className="relative mx-auto flex h-[72px] w-[72px] items-center justify-center rounded-full bg-gradient-to-br from-[#007BFF] to-[#00AEEF] text-2xl font-bold text-white shadow-lg shadow-blue-500/25">
-                    {user.name.charAt(0).toUpperCase()}
-                </span>
-                <p className="mt-3 break-words text-sm font-semibold text-gray-900 dark:text-gray-100">
-                    {user.name}
+                <Avatar photoUrl={student?.photoUrl} name={displayName} />
+                <p dir="auto" className="mt-3 break-words text-sm font-semibold text-gray-900 dark:text-gray-100">
+                    {displayName}
                 </p>
                 <p className="mt-0.5 text-[11px] uppercase tracking-widest text-gray-500 dark:text-gray-400">
                     {t('student.file')}
@@ -110,8 +166,21 @@ export default function StudentLayout({ student, children }) {
                 <Detail icon={<FaGlobe />}            label={t('student.examLanguage')}  value={examLang} />
             </ul>
 
-            {/* Logout */}
-            <div className="relative mt-auto p-5">
+            {/* Theme + logout */}
+            <div className="relative mt-auto space-y-2 p-5">
+                <button
+                    type="button"
+                    onClick={toggleTheme}
+                    aria-label={dark ? t('topbar.lightMode') : t('topbar.darkMode')}
+                    title={dark ? t('topbar.lightMode') : t('topbar.darkMode')}
+                    className="group flex w-full items-center gap-x-2.5 rounded-2xl border border-gray-200 bg-white px-3 py-2.5 text-sm font-medium text-gray-600 shadow-sm outline-none transition-all hover:border-[#007BFF]/30 hover:bg-blue-50 hover:text-[#007BFF] dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300 dark:hover:border-[#00AEEF]/40 dark:hover:bg-[#007BFF]/10 dark:hover:text-[#00AEEF]"
+                >
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-gray-100 text-gray-500 transition-colors group-hover:bg-blue-100 group-hover:text-[#007BFF] dark:bg-gray-600 dark:text-gray-400 dark:group-hover:bg-[#007BFF]/20 dark:group-hover:text-[#00AEEF]">
+                        {dark ? <FaSun size={13} /> : <FaMoon size={13} />}
+                    </span>
+                    <span className="truncate">{dark ? t('topbar.lightMode') : t('topbar.darkMode')}</span>
+                </button>
+
                 <button
                     type="button"
                     onClick={handleLogout}
@@ -147,8 +216,8 @@ export default function StudentLayout({ student, children }) {
                 {aside}
             </div>
 
-            {/* Desktop sidebar */}
-            <aside className="fixed inset-y-4 start-4 z-50 hidden w-64 overflow-y-auto rounded-2xl border border-gray-200 bg-white shadow-[0_18px_40px_-18px_rgba(15,23,42,0.18)] dark:border-gray-700 dark:bg-gray-800 dark:shadow-[0_18px_40px_-18px_rgba(0,0,0,0.55)] lg:block">
+            {/* Desktop sidebar — same top/bottom line as the page content (main p-10) */}
+            <aside className="fixed inset-y-4 start-4 z-50 hidden w-64 overflow-y-auto rounded-2xl border border-gray-200 bg-white shadow-[0_18px_40px_-18px_rgba(15,23,42,0.18)] dark:border-gray-700 dark:bg-gray-800 dark:shadow-[0_18px_40px_-18px_rgba(0,0,0,0.55)] lg:inset-y-10 lg:block">
                 {aside}
             </aside>
 

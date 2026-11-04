@@ -3,8 +3,20 @@
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="csrf-token" content="{{ csrf_token() }}">
 
         <title inertia>{{ config('app.name', 'Laravel') }}</title>
+
+        {{-- Applied theme before first paint, so reloading in dark mode never flashes white --}}
+        <script>
+            (function () {
+                try {
+                    var saved = localStorage.getItem('theme');
+                    var dark = saved ? saved === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
+                    document.documentElement.classList.toggle('dark', dark);
+                } catch (error) { /* storage blocked — keep the default */ }
+            })();
+        </script>
 
         {{-- Applied language + direction before first paint, so Arabic never renders LTR for a frame --}}
         <script>
