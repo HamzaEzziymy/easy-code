@@ -31,6 +31,10 @@ function savedPageLocal(studentId, url) {
     return readAll(studentId)[url]?.page ?? 1;
 }
 
+function pctOf(page, total) {
+    return total > 0 ? Math.round((page / total) * 100) : 0;
+}
+
 /* ── DB sync ─────────────────────────────────────────────────────────────── */
 function persistToDB(courseId, pdfSlot, page, total) {
     if (!courseId || !pdfSlot || !total) return;
@@ -61,23 +65,41 @@ function persistToDB(courseId, pdfSlot, page, total) {
 }
 
 /**
- * Called once on Dashboard mount — seeds localStorage from DB data.
- * studentId namespaces the key so different students on the same device
- * never share progress.
+ * Called on Dashboard mount — makes the account record and this device agree.
+ * The DB is authoritative, but reading progress only ever grows: when this
+ * device read further than the account knows (a save that never reached the
+ * server), the local value is pushed up so every other device sees it too.
  */
-export function seedProgressFromServer(studentId, pdfUrl, serverEntry) {
-    if (!pdfUrl || !serverEntry) return;
+export function seedProgressFromServer(studentId, pdfUrl, serverEntry, courseId, pdfSlot) {
+    if (!pdfUrl) return;
     const all   = readAll(studentId);
     const local = all[pdfUrl];
-    if (!local || serverEntry.page > (local.page ?? 0)) {
-        all[pdfUrl] = {
-            page:      serverEntry.page,
-            total:     serverEntry.total,
-            scrollPct: serverEntry.scrollPct,
-        };
-        localStorage.setItem(storageKey(studentId), JSON.stringify(all));
-        window.dispatchEvent(new CustomEvent('pdf-progress-update', { detail: { studentId } }));
+
+    if (!serverEntry) {
+        if (local) persistToDB(courseId, pdfSlot, local.page, local.total);
+        return;
     }
+
+    const serverPct = serverEntry.scrollPct ?? pctOf(serverEntry.page, serverEntry.total);
+
+    // A different page count means the PDF was replaced — the server knows the
+    // new file, so its page wins over anything cached for the old one.
+    if (local && local.total === serverEntry.total) {
+        const localPct = local.scrollPct ?? pctOf(local.page, local.total);
+        if (localPct > serverPct) {
+            persistToDB(courseId, pdfSlot, local.page, local.total);
+            return;
+        }
+        if (local.page === serverEntry.page) return;
+    }
+
+    all[pdfUrl] = {
+        page:      serverEntry.page,
+        total:     serverEntry.total,
+        scrollPct: serverPct,
+    };
+    localStorage.setItem(storageKey(studentId), JSON.stringify(all));
+    window.dispatchEvent(new CustomEvent('pdf-progress-update', { detail: { studentId } }));
 }
 
 /* ── PdfCanvas ───────────────────────────────────────────────────────────── */
@@ -326,20 +348,23 @@ export default function PdfViewer({ url, title, typePill, onBack, studentId, cou
 }
 
 /* ── PdfProgressBar ───────────────────────────────────────────────────────── */
-export function PdfProgressBar({ url, label, studentId, initialPct = null, onClick }) {
+export function PdfProgressBar({ url, label, caption, studentId, initialPct = null, onClick }) {
     const readPct = () => {
+        let localPct = null;
         try {
             const e = readAll(studentId)[url];
-            if (e) {
-                if (e.scrollPct !== undefined) return e.scrollPct;
-                if (e.page && e.total > 0) return Math.round((e.page / e.total) * 100);
-            }
+            if (e) localPct = e.scrollPct ?? (e.page ? pctOf(e.page, e.total) : null);
         } catch { }
-        // Server value — the bar shows the account's progress on a fresh device
-        return typeof initialPct === 'number' ? initialPct : null;
+        // The account record answers for other devices; whichever read further wins.
+        const serverPct = typeof initialPct === 'number' ? initialPct : null;
+        if (localPct === null) return serverPct ?? 0;
+        if (serverPct === null) return localPct;
+        return Math.max(localPct, serverPct);
     };
 
     const [pct, setPct] = useState(readPct);
+
+    useEffect(() => { setPct(readPct()); }, [url, studentId, initialPct]); // eslint-disable-line
 
     useEffect(() => {
         // Cross-tab (storage event) + same-tab (custom event)
@@ -351,24 +376,27 @@ export function PdfProgressBar({ url, label, studentId, initialPct = null, onCli
             window.removeEventListener('storage', onStorage);
             window.removeEventListener('pdf-progress-update', onUpdate);
         };
-    }, [url, studentId]);
+    }, [url, studentId, initialPct]);
 
-    const color = pct === null ? '#9CA3AF' : pct >= 100 ? '#10B981' : pct >= 70 ? '#F59E0B' : '#3B82F6';
+    const color = pct >= 100 ? '#10B981' : pct >= 70 ? '#F59E0B' : '#3B82F6';
 
     return (
         <button type="button" onClick={onClick}
-            className="group flex w-full flex-col gap-y-1 rounded-lg border border-gray-200 bg-gray-50 px-2.5 py-2 text-start transition hover:border-[#007BFF]/40 hover:bg-[#007BFF]/5 dark:border-gray-600 dark:bg-gray-700/50 dark:hover:border-[#00AEEF]/40">
+            className="group flex w-full flex-col gap-y-1.5 rounded-lg border border-gray-200 bg-gray-50 px-2.5 py-2 text-start transition hover:border-[#007BFF]/40 hover:bg-[#007BFF]/5 dark:border-gray-600 dark:bg-gray-700/50 dark:hover:border-[#00AEEF]/40">
             <div className="flex items-center justify-between gap-x-1">
                 <span className="flex items-center gap-x-1 text-[11px] font-semibold text-gray-600 dark:text-gray-300">
-                    <FaFilePdf size={9} className="text-red-400" /> {label}
+                    <FaFilePdf size={9} className="text-red-400" /> {caption ?? label}
                 </span>
-                <span className="text-[11px] font-bold" style={{ color }}>
-                    {pct !== null ? `${pct}%` : '—'}
+                <span className="flex items-center gap-x-1.5">
+                    <span className="rounded bg-gray-200 px-1 text-[9px] font-bold leading-4 text-gray-500 dark:bg-gray-600 dark:text-gray-300">
+                        {label}
+                    </span>
+                    <span className="text-[11px] font-bold tabular-nums" style={{ color }}>{pct}%</span>
                 </span>
             </div>
-            <div className="h-1 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-gray-600">
+            <div className="h-2 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-gray-600">
                 <div className="h-full rounded-full transition-all duration-500"
-                    style={{ width: pct !== null ? `${pct}%` : '0%', backgroundColor: color }} />
+                    style={{ width: `${pct}%`, backgroundColor: color }} />
             </div>
         </button>
     );

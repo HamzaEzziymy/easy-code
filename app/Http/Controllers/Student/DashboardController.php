@@ -9,6 +9,7 @@ use App\Models\StudentPdfProgress;
 use App\Models\StudentQuizProgress;
 use App\Models\Test;
 use App\Support\QuestionBank;
+use App\Support\QuizGrader;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -106,12 +107,27 @@ class DashboardController extends Controller
         $quizRows     = StudentQuizProgress::where('student_id', $student->id)->get();
         $quizProgress = [];
         foreach ($quizRows as $row) {
+            // Sittings finished before grades were stored get their real grade once.
+            if ($row->done && $row->correct_count === null) {
+                $graded = QuizGrader::grade($row->item_type, $row->item_id, $catId, $row->answers ?? []);
+
+                if ($graded !== null) {
+                    $row->forceFill([
+                        'correct_count'   => $graded['correct'],
+                        'questions_total' => $graded['total'],
+                        'score_pct'       => $graded['pct'],
+                    ])->save();
+                }
+            }
+
             $quizProgress["{$row->item_type}:{$row->item_id}"] = [
                 'qIndex'   => $row->question_index,
                 'answers'  => $row->answers ?? [],
                 'done'     => $row->done,
                 'left'     => $row->remaining_seconds,
                 'scorePct' => $row->score_pct,
+                'correct'  => $row->correct_count,
+                'total'    => $row->questions_total,
             ];
         }
 

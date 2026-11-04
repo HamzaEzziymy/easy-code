@@ -20,6 +20,8 @@ class StudentQuizProgress extends Model
         'remaining_seconds',
         'done',
         'score_pct',
+        'correct_count',
+        'questions_total',
     ];
 
     protected function casts(): array
@@ -30,6 +32,8 @@ class StudentQuizProgress extends Model
             'remaining_seconds' => 'integer',
             'done'              => 'boolean',
             'score_pct'         => 'integer',
+            'correct_count'     => 'integer',
+            'questions_total'   => 'integer',
         ];
     }
 

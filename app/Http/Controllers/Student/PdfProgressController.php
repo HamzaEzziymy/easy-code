@@ -34,18 +34,25 @@ class PdfProgressController extends Controller
         $course = Course::findOrFail($data['course_id']);
         abort_unless($course->license_category_id === $student->license_category_id, 403);
 
-        StudentPdfProgress::updateOrCreate(
-            [
-                'student_id' => $student->id,
-                'course_id'  => $data['course_id'],
-                'pdf_slot'   => $data['pdf_slot'],
-            ],
-            [
-                'current_page' => $data['current_page'],
-                'total_pages'  => $data['total_pages'],
-                'scroll_pct'   => $data['scroll_pct'],
-            ]
-        );
+        $progress = StudentPdfProgress::firstOrNew([
+            'student_id' => $student->id,
+            'course_id'  => $data['course_id'],
+            'pdf_slot'   => $data['pdf_slot'],
+        ]);
+
+        // Progress is the furthest point reached: flipping back a few pages to
+        // re-read must not lower the account's progress on other devices.
+        if ($progress->exists
+            && $progress->total_pages === $data['total_pages']
+            && $progress->current_page >= $data['current_page']) {
+            return response()->json(['ok' => true]);
+        }
+
+        $progress->fill([
+            'current_page' => $data['current_page'],
+            'total_pages'  => $data['total_pages'],
+            'scroll_pct'   => (int) round($data['current_page'] / $data['total_pages'] * 100),
+        ])->save();
 
         return response()->json(['ok' => true]);
     }

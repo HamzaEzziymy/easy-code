@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Exam;
 use App\Models\StudentQuizProgress;
 use App\Models\Test;
+use App\Support\QuizGrader;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -29,7 +30,6 @@ class QuizProgressController extends Controller
             'qIndex'       => ['required', 'integer', 'min:0', 'max:999'],
             'left'         => ['required', 'integer', 'min:0', 'max:86400'],
             'done'         => ['required', 'boolean'],
-            'scorePct'     => ['nullable', 'integer', 'min:0', 'max:100'],
             'answers'      => ['array'],
             'answers.*'    => ['array'],
             'answers.*.*'  => ['integer', 'min:0', 'max:99'],
@@ -49,6 +49,11 @@ class QuizProgressController extends Controller
             $answers[(int) $index] = array_values(array_unique(array_map('intval', $picks)));
         }
 
+        // The grade is computed from the stored answers — never taken from the browser.
+        $result = $data['done']
+            ? QuizGrader::grade($data['item_type'], $data['item_id'], $student->license_category_id, $answers)
+            : null;
+
         StudentQuizProgress::updateOrCreate(
             [
                 'student_id' => $student->id,
@@ -60,7 +65,9 @@ class QuizProgressController extends Controller
                 'answers'           => $answers,
                 'remaining_seconds' => $data['left'],
                 'done'              => $data['done'],
-                'score_pct'         => $data['done'] ? ($data['scorePct'] ?? null) : null,
+                'score_pct'         => $result['pct'] ?? null,
+                'correct_count'     => $result['correct'] ?? null,
+                'questions_total'   => $result['total'] ?? null,
             ]
         );
 

@@ -1,8 +1,8 @@
 import StudentLayout from '@/Layouts/StudentLayout';
 import PdfViewer, { PdfProgressBar, seedProgressFromServer } from '@/Components/PdfViewer';
 import ExamPreview from '@/Components/ExamPreview';
-import { Head } from '@inertiajs/react';
-import { useState, useEffect } from 'react';
+import { Head, router } from '@inertiajs/react';
+import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
     FaBook,
@@ -10,6 +10,7 @@ import {
     FaChevronRight,
     FaCircleCheck,
     FaCirclePlay,
+    FaCircleXmark,
     FaClipboardCheck,
     FaClipboardList,
     FaInbox,
@@ -118,6 +119,10 @@ function ItemCard({ item, rtl, t, examLanguage, studentId, pdfProgress, progress
     const pdfLabel = pdfSlot === 'ar' ? 'AR' : 'FR';
     const pdfPct   = pdfSlot ? (pdfProgress?.[`${item.id}:${pdfSlot}`]?.scrollPct ?? null) : null;
     const answered = progress ? Math.min(progress.qIndex + 1, item.questionsCount || progress.qIndex + 1) : null;
+    const resultTotal = progress?.total ?? item.questionsCount;
+    const resultCorrect = progress?.correct
+        ?? (progress?.scorePct != null && resultTotal ? Math.round((progress.scorePct * resultTotal) / 100) : null);
+    const resultPassed = (progress?.scorePct ?? 0) >= (item.passPercentage ?? 70);
 
     // The PDF progress bar is itself a button, so the card cannot be one.
     return (
@@ -154,37 +159,42 @@ function ItemCard({ item, rtl, t, examLanguage, studentId, pdfProgress, progress
                         {desc}
                     </p>
                 )}
-                {(item.questionsCount !== undefined || item.duration !== undefined || progress) && (
+                {(item.questionsCount !== undefined || progress) && (
                     <div className="mt-2 flex flex-wrap gap-1.5">
                         {item.questionsCount !== undefined && (
                             <span className="inline-flex items-center gap-x-1 rounded-md bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium text-gray-600 dark:bg-gray-700 dark:text-gray-300">
                                 <FaClipboardCheck size={8} />{item.questionsCount} {t('tests.questions')}
                             </span>
                         )}
-                        {item.duration !== undefined && (
-                            <span className="inline-flex items-center gap-x-1 rounded-md bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium text-gray-600 dark:bg-gray-700 dark:text-gray-300">
-                                <FaClock size={8} />{item.duration} {t('tests.minutes')}
-                            </span>
-                        )}
-                        {progress && (
-                            <span className={`inline-flex items-center gap-x-1 rounded-md px-1.5 py-0.5 text-[10px] font-semibold ${
-                                progress.done
-                                    ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300'
-                                    : 'bg-[#007BFF]/10 text-[#007BFF] dark:bg-[#007BFF]/20 dark:text-[#00AEEF]'
-                            }`}>
-                                {progress.done
-                                    ? <FaCircleCheck size={8} />
-                                    : <FaCirclePlay size={8} />}
-                                {progress.done
-                                    ? `${progress.scorePct ?? 0}%`
-                                    : `${answered}/${item.questionsCount ?? '?'}`}
+                        {progress && !progress.done && (
+                            <span className="inline-flex items-center gap-x-1 rounded-md bg-[#007BFF]/10 px-1.5 py-0.5 text-[10px] font-semibold text-[#007BFF] dark:bg-[#007BFF]/20 dark:text-[#00AEEF]">
+                                <FaCirclePlay size={8} />
+                                {`${answered}/${item.questionsCount ?? '?'}`}
                             </span>
                         )}
                     </div>
                 )}
+                {progress?.done && (
+                    <div className={`mt-2 flex items-center justify-between gap-x-2 rounded-lg px-2.5 py-1.5 ${
+                        resultPassed
+                            ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300'
+                            : 'bg-red-50 text-red-600 dark:bg-red-500/15 dark:text-red-300'
+                    }`}>
+                        <span className="flex items-center gap-x-1 text-[10px] font-bold uppercase tracking-wider opacity-80">
+                            {resultPassed ? <FaCircleCheck size={9} /> : <FaCircleXmark size={9} />}
+                            {t('student.result')}
+                        </span>
+                        <span className="flex items-center gap-x-2 font-extrabold tabular-nums">
+                            <span className="text-sm leading-none">{resultCorrect ?? 0}/{resultTotal ?? '?'}</span>
+                            <span className="rounded bg-white/60 px-1.5 py-0.5 text-[10px] font-bold leading-none dark:bg-black/20">
+                                {progress.scorePct ?? 0}%
+                            </span>
+                        </span>
+                    </div>
+                )}
                 {pdfUrl && (
                     <div className="mt-2">
-                        <PdfProgressBar url={pdfUrl} label={pdfLabel} studentId={studentId} initialPct={pdfPct}
+                        <PdfProgressBar url={pdfUrl} label={pdfLabel} caption={t('student.progress')} studentId={studentId} initialPct={pdfPct}
                             onClick={(e) => { e.stopPropagation(); onSelect(item); }} />
                     </div>
                 )}
@@ -337,17 +347,36 @@ export default function Dashboard({ student, courses, tests, exams, questions = 
         } catch { /* silent */ }
     }, []); // eslint-disable-line
 
-    // Seed localStorage from DB on mount
+    // Reconcile this device's cache with the account's reading progress
     useEffect(() => {
         if (!courses || !pdfProgress || !studentId) return;
         courses.forEach(course => {
             ['fr', 'ar'].forEach(slot => {
-                const entry  = pdfProgress[`${course.id}:${slot}`];
                 const pdfUrl = slot === 'fr' ? course.pdfFrUrl : course.pdfArUrl;
-                if (entry && pdfUrl) seedProgressFromServer(studentId, pdfUrl, entry);
+                if (!pdfUrl) return;
+                seedProgressFromServer(
+                    studentId,
+                    pdfUrl,
+                    pdfProgress[`${course.id}:${slot}`] ?? null,
+                    course.id,
+                    slot,
+                );
             });
         });
-    }, []); // eslint-disable-line
+    }, [pdfProgress]); // eslint-disable-line
+
+    // Another device may have read further while this tab was in the background
+    const lastSync = useRef(0);
+    useEffect(() => {
+        const onVisible = () => {
+            if (document.visibilityState !== 'visible') return;
+            if (Date.now() - lastSync.current < 15000) return;
+            lastSync.current = Date.now();
+            router.reload({ only: ['pdfProgress'] });
+        };
+        document.addEventListener('visibilitychange', onVisible);
+        return () => document.removeEventListener('visibilitychange', onVisible);
+    }, []);
 
     if (!student) {
         return (

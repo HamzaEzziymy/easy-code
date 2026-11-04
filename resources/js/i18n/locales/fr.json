@@ -123,7 +123,9 @@
         "notEnrolled": "Votre compte n'est pas encore lié à un dossier stagiaire.",
         "notEnrolledHelp": "Demandez à votre auto-école de finaliser votre inscription. Vos convocations et résultats apparaîtront ici.",
         "emptyTitle": "Rien pour le moment",
-        "emptyHelp": "Vos convocations et vos résultats d’examen apparaîtront ici dès que votre auto-école les aura programmés."
+        "emptyHelp": "Vos convocations et vos résultats d’examen apparaîtront ici dès que votre auto-école les aura programmés.",
+        "progress": "Progression",
+        "result": "Résultat"
     },
     "users": {
         "title": "Administrateurs",
