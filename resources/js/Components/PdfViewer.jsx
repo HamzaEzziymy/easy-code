@@ -253,7 +253,7 @@ export default function PdfViewer({ url, title, typePill, onBack, studentId, cou
     const barColor = pct >= 100 ? '#10B981' : pct >= 70 ? '#F59E0B' : '#3B82F6';
 
     return (
-        <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
+        <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-[0_1px_3px_rgba(16,24,40,0.10),0_8px_20px_-8px_rgba(16,24,40,0.18)] dark:border-gray-700 dark:bg-gray-800 dark:shadow-[0_2px_4px_rgba(0,0,0,0.45),0_10px_24px_-12px_rgba(0,0,0,0.55)]">
 
             {/* Header — back button + type pill + title + page controls */}
             <div className="flex h-12 shrink-0 items-center gap-x-2 border-b border-gray-200 bg-white px-3 dark:border-gray-700 dark:bg-gray-800">

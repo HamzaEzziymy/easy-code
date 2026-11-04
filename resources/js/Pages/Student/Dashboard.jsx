@@ -131,7 +131,7 @@ function ItemCard({ item, rtl, t, examLanguage, studentId, pdfProgress, progress
             tabIndex={0}
             onClick={() => onSelect(item)}
             onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect(item); } }}
-            className="group flex cursor-pointer flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white text-start shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-[#007BFF] dark:border-gray-700 dark:bg-gray-800"
+            className="group flex cursor-pointer flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white text-start shadow-[0_1px_3px_rgba(16,24,40,0.10),0_8px_20px_-8px_rgba(16,24,40,0.18)] transition-all duration-200 hover:-translate-y-0.5 hover:border-gray-300 hover:shadow-[0_16px_32px_-14px_rgba(16,24,40,0.3)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#007BFF] dark:border-gray-700 dark:bg-gray-800 dark:shadow-[0_2px_4px_rgba(0,0,0,0.45),0_10px_24px_-12px_rgba(0,0,0,0.55)] dark:hover:border-gray-600 dark:hover:shadow-[0_18px_36px_-14px_rgba(0,0,0,0.6)]"
         >
             {/* Cover */}
             <div className="relative h-36 w-full overflow-hidden">
@@ -238,7 +238,7 @@ function DetailView({ item, rtl, t, studentId, examLanguage, pdfProgress, onBack
                 />
             ) : (
                 /* Test / Exam — no PDF */
-                <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
+                <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-[0_1px_3px_rgba(16,24,40,0.10),0_8px_20px_-8px_rgba(16,24,40,0.18)] dark:border-gray-700 dark:bg-gray-800 dark:shadow-[0_2px_4px_rgba(0,0,0,0.45),0_10px_24px_-12px_rgba(0,0,0,0.55)]">
                     {/* Header with back + type pill + title */}
                     <div className="flex h-12 shrink-0 items-center gap-x-2 border-b border-gray-200 px-3 dark:border-gray-700">
                         <button type="button" onClick={onBack}
